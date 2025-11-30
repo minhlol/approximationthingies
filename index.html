@@ -158,11 +158,7 @@
         // Load and parse CSV data
         async function loadData() {
             try {
-                // Use relative path that works both locally and on GitHub Pages
-                const basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-                const csvPath = basePath + 'monkeypox_fitted_prediction.csv';
-                
-                const response = await fetch(csvPath);
+                const response = await fetch('monkeypox_fitted_prediction.csv');
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
