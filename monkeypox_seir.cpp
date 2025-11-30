@@ -1,57 +1,27 @@
+
 #include <bits/stdc++.h>
 using namespace std;
 
-// SEIR Model Parameters (Extended Human-Rodent Model)
-// Reference models: Md. Rasel et al., Symmetry 2022, doi:10.3390/sym14122545 (Table 1)
-// Additional mpox clinical/literature context: Victoria Department of Health, mpox guidance
+// --- Data Structures ---
 struct Parameters
 {
-    // Human Parameters (calibrated against Symmetry 2022 model assumptions)
-    double theta_h; // Human recruitment rate
-    double beta1;   // Human-rodent contact rate
-    double beta2;   // Human-human contact rate
-    double alpha1;  // Proportion of infected humans from exposed humans (E_h -> I_h)
-    double alpha2;  // Proportion of suspected cases detected (E_h -> Q_h)
-    double phi;     // Proportion not detected after diagnosis (Q_h -> S_h)
-    double tau;     // Progression from isolated to recovered (Q_h -> R_h)
-    double nu;      // Humans recovery rate (I_h -> R_h)
-    double mu_h;    // Natural human death rate
-    double delta_h; // Disease induced human death rate
-
-    // Rodent Parameters (consistent with the reservoir compartment in Symmetry 2022)
-    double theta_r; // Rodent recruitment rate
-    double beta3;   // Rodent-rodent contact rate
-    double alpha3;  // Proportion of infected rodents from exposed rodents (E_r -> I_r)
-    double mu_r;    // Natural rodent death rate
-    double delta_r; // Disease induced rodent death rate
-
-    // Multiple Outbreak Parameters (scenario-based control input)
-    double importation_rate;           // Daily external infections introduced (travelers etc.)
-    map<double, double> beta_schedule; // Map of (Day -> Beta2 Value) to change contact rate over time
+    double theta_h, beta1, beta2, alpha1, alpha2, phi, tau, nu, mu_h, delta_h;
+    double theta_r, beta3, alpha3, mu_r, delta_r;
+    double importation_rate;
+    map<double, double> beta_schedule;
 };
 
-// State variables
 struct State
 {
-    // Human Compartments
-    double S_h; // Susceptible
-    double E_h; // Exposed
-    double I_h; // Infectious (Undetected)
-    double Q_h; // Quarantined/Detected
-    double R_h; // Recovered
-
-    // Rodent Compartments
-    double S_r; // Susceptible
-    double E_r; // Exposed
-    double I_r; // Infectious
-
-    double t; // Time (days from start)
+    double S_h, E_h, I_h, Q_h, R_h;
+    double S_r, E_r, I_r;
+    double t;
 };
 
 struct Observation
 {
     string dateStr;
-    double time; // Days from start
+    double time;
     double infectious;
     double movingAvg7Day;
 };
@@ -63,19 +33,18 @@ struct DailyPrediction
     double infectious;
 };
 
-// Date Helper Functions
+// --- Date Helper Functions ---
 time_t parseDate(const string &dateStr)
 {
     tm tm = {};
     stringstream ss(dateStr);
     char delimiter;
     int year, month, day;
-    // Expected format: MM-DD-YYYY
     ss >> month >> delimiter >> day >> delimiter >> year;
     tm.tm_year = year - 1900;
     tm.tm_mon = month - 1;
     tm.tm_mday = day;
-    tm.tm_hour = 12; // Noon to avoid DST issues
+    tm.tm_hour = 12;
     return mktime(&tm);
 }
 
@@ -116,7 +85,7 @@ vector<Observation> readObservations(const string &filename)
     // Skip header
     getline(file, line);
 
-    time_t startDate = 0;
+    std::time_t startDate = 0;
     bool first = true;
 
     while (getline(file, line))
@@ -135,7 +104,7 @@ vector<Observation> readObservations(const string &filename)
             obs.dateStr = dateVal;
             obs.infectious = infectiousVal;
 
-            time_t currentDate = parseDate(dateVal);
+            std::time_t currentDate = parseDate(dateVal);
 
             if (first)
             {
@@ -221,10 +190,11 @@ vector<State> simulatePeriod(Parameters params, State initialState, double t_end
 }
 
 // Calculate Sum of Squared Errors (SSE)
+// Calculate Log-Transformed Sum of Squared Errors (Log-SSE)
 double calculateSSE(const vector<Observation> &observed, const vector<State> &predicted)
 {
     double sse = 0.0;
-
+    const double eps = 1e-3; // To avoid log(0)
     for (const auto &obs : observed)
     {
         // Find closest predicted point in time
@@ -233,13 +203,12 @@ double calculateSSE(const vector<Observation> &observed, const vector<State> &pr
                               {
                                   return s.t < t;
                               });
-
         if (it != predicted.end())
         {
-            // Compare observed infectious against Total Active Human Infections (I_h + Q_h)
-            // Assuming observed data captures both or represents the active burden
             double total_infectious_h = it->I_h + it->Q_h;
-            double error = obs.infectious - total_infectious_h;
+            double log_obs = log(obs.infectious + eps);
+            double log_pred = log(total_infectious_h + eps);
+            double error = log_obs - log_pred;
             sse += error * error;
         }
     }
