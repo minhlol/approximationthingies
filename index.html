@@ -135,6 +135,13 @@
                     <option value="rodent">Rodent Compartments</option>
                 </select>
             </div>
+            <div class="control-group">
+                <label for="scaleSelect">📏 Y-Scale:</label>
+                <select id="scaleSelect" onchange="updateScale()">
+                    <option value="linear">Linear</option>
+                    <option value="log">Logarithmic</option>
+                </select>
+            </div>
         </div>
         
         <div class="chart-container">
@@ -169,24 +176,11 @@
                         S_r: parseFloat(values[6]),
                         E_r: parseFloat(values[7]),
                         I_r: parseFloat(values[8]),
-                        Total_Infected_h: parseFloat(values[9])
+                        Total_Infected_h: parseFloat(values[9]),
+                        observed: parseFloat(values[10]) || 0,
+                        ma7: parseFloat(values[11]) || 0,
+                        ma21: parseFloat(values[12]) || 0
                     };
-                });
-                
-                // Load observed data
-                const obsResponse = await fetch('observed_data.csv');
-                const obsCsvText = await obsResponse.text();
-                const obsLines = obsCsvText.trim().split('\n');
-                const observedData = {};
-                
-                obsLines.slice(1).forEach(line => {
-                    const [date, value] = line.split(',');
-                    observedData[date] = parseFloat(value);
-                });
-                
-                // Merge observed data with predicted
-                allData.forEach(row => {
-                    row.observed = observedData[row.date] || 0;
                 });
                 
                 initializeChart();
@@ -248,7 +242,7 @@
                         y: {
                             title: {
                                 display: true,
-                                text: 'Cases / Population Proportion',
+                                text: 'Cases / Population',
                                 font: { size: 14, weight: 'bold' }
                             },
                             beginAtZero: true
@@ -260,6 +254,31 @@
             changeView();
         }
         
+        function updateScale() {
+            const scale = document.getElementById('scaleSelect').value;
+            
+            if (scale === 'log') {
+                myChart.options.scales.y.type = 'logarithmic';
+                myChart.options.scales.y.min = 0.1;
+                myChart.options.scales.y.ticks = {
+                    callback: function(value, index, values) {
+                        if (value === 0.1 || value === 1 || value === 10 || 
+                            value === 100 || value === 1000 || value === 10000 || 
+                            value === 100000 || value === 1000000) {
+                            return value.toLocaleString();
+                        }
+                        return null;
+                    }
+                };
+            } else {
+                myChart.options.scales.y.type = 'linear';
+                delete myChart.options.scales.y.min;
+                myChart.options.scales.y.ticks = {};
+            }
+            
+            myChart.update();
+        }
+        
         function changeView() {
             const view = document.getElementById('viewSelect').value;
             
@@ -269,11 +288,30 @@
                         label: 'Observed Cases',
                         data: allData.map(d => d.observed),
                         borderColor: '#dc3545',
-                        backgroundColor: '#dc3545',
-                        pointRadius: 2,
-                        pointHoverRadius: 5,
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        pointRadius: 1,
+                        pointHoverRadius: 4,
+                        borderWidth: 1,
+                        tension: 0
+                    },
+                    {
+                        label: '7-Day Moving Average',
+                        data: allData.map(d => d.ma7),
+                        borderColor: '#fd7e14',
+                        backgroundColor: 'transparent',
+                        pointRadius: 0,
                         borderWidth: 2,
-                        tension: 0.1
+                        tension: 0.4
+                    },
+                    {
+                        label: '21-Day Moving Average',
+                        data: allData.map(d => d.ma21),
+                        borderColor: '#ffc107',
+                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                        fill: true,
+                        pointRadius: 0,
+                        borderWidth: 3,
+                        tension: 0.4
                     },
                     {
                         label: 'Model Prediction (I_h + Q_h)',
@@ -382,7 +420,9 @@
             const view = document.getElementById('viewSelect').value;
             if (view === 'comparison') {
                 myChart.data.datasets[0].data = filteredData.map(d => d.observed);
-                myChart.data.datasets[1].data = filteredData.map(d => d.Total_Infected_h);
+                myChart.data.datasets[1].data = filteredData.map(d => d.ma7);
+                myChart.data.datasets[2].data = filteredData.map(d => d.ma21);
+                myChart.data.datasets[3].data = filteredData.map(d => d.Total_Infected_h);
             } else if (view === 'human') {
                 myChart.data.datasets[0].data = filteredData.map(d => d.S_h);
                 myChart.data.datasets[1].data = filteredData.map(d => d.E_h);
@@ -393,6 +433,28 @@
                 myChart.data.datasets[0].data = filteredData.map(d => d.S_r);
                 myChart.data.datasets[1].data = filteredData.map(d => d.E_r);
                 myChart.data.datasets[2].data = filteredData.map(d => d.I_r);
+            }
+            
+            // Auto-adjust Y-axis scale based on filtered data
+            const allValues = [];
+            myChart.data.datasets.forEach(dataset => {
+                dataset.data.forEach(val => {
+                    if (val > 0) allValues.push(val);
+                });
+            });
+            
+            if (allValues.length > 0) {
+                const maxVal = Math.max(...allValues);
+                const minVal = Math.min(...allValues);
+                
+                // Reset scale to fit the filtered data
+                if (myChart.options.scales.y.type === 'logarithmic') {
+                    myChart.options.scales.y.min = Math.max(0.01, minVal * 0.5);
+                    myChart.options.scales.y.max = maxVal * 2;
+                } else {
+                    delete myChart.options.scales.y.min;
+                    myChart.options.scales.y.max = maxVal * 1.1;
+                }
             }
             
             myChart.update();
