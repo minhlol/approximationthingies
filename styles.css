@@ -172,10 +172,10 @@ select:hover, button:hover {
 
 .mermaid .svg-wrapper {
     display: inline-block;
-    transition: transform 0.2s ease;
     transform-origin: center center;
     padding: 50px;
     min-width: 100%;
+    will-change: transform;
 }
 
 .diagram-zoom-controls {

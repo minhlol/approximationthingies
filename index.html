@@ -475,51 +475,70 @@ graph TB
                         container.style.position = 'relative';
                         container.insertBefore(controls, container.firstChild);
                         
-                        // Zoom functions
-                        function updateZoom(newScale) {
+                        // Zoom functions with smoothing
+                        let zoomTimeout;
+                        function updateZoom(newScale, smooth = false) {
                             scale = Math.max(0.5, Math.min(3, newScale));
                             
                             if (wrapper.classList.contains('svg-wrapper')) {
+                                // Apply transition only for button clicks, not for continuous gestures
+                                if (smooth) {
+                                    wrapper.style.transition = 'transform 0.2s ease';
+                                } else {
+                                    wrapper.style.transition = 'none';
+                                }
+                                
                                 wrapper.style.transform = `scale(${scale})`;
                                 
-                                // Update wrapper size to accommodate scaled content
-                                const baseWidth = svg.scrollWidth || svg.clientWidth;
-                                const baseHeight = svg.scrollHeight || svg.clientHeight;
-                                wrapper.style.width = (baseWidth * scale) + 'px';
-                                wrapper.style.height = (baseHeight * scale) + 'px';
-                                wrapper.style.margin = '0 auto';
+                                // Debounce size updates for better performance
+                                clearTimeout(zoomTimeout);
+                                zoomTimeout = setTimeout(() => {
+                                    const baseWidth = svg.scrollWidth || svg.clientWidth;
+                                    const baseHeight = svg.scrollHeight || svg.clientHeight;
+                                    wrapper.style.width = (baseWidth * scale) + 'px';
+                                    wrapper.style.height = (baseHeight * scale) + 'px';
+                                    wrapper.style.margin = '0 auto';
+                                }, 50);
                             } else {
                                 svg.style.transform = `scale(${scale})`;
                             }
                         }
                     
-                    // Button controls
+                    // Button controls with smooth transitions
                     controls.querySelector('.zoom-in').addEventListener('click', (e) => {
                         e.stopPropagation();
-                        updateZoom(scale + 0.2);
+                        updateZoom(scale + 0.2, true);
                     });
                     
                     controls.querySelector('.zoom-out').addEventListener('click', (e) => {
                         e.stopPropagation();
-                        updateZoom(scale - 0.2);
+                        updateZoom(scale - 0.2, true);
                     });
                     
                     controls.querySelector('.zoom-reset').addEventListener('click', (e) => {
                         e.stopPropagation();
-                        updateZoom(initialScale);
+                        updateZoom(initialScale, true);
                         // Reset to bottom right position
                         setTimeout(() => {
                             container.scrollLeft = container.scrollWidth - container.clientWidth;
                             container.scrollTop = container.scrollHeight - container.clientHeight;
-                        }, 50);
+                        }, 250);
                     });
                     
-                    // Mouse wheel zoom
+                    // Mouse wheel zoom with throttling
+                    let wheelTimeout;
                     container.addEventListener('wheel', (e) => {
                         if (e.ctrlKey || e.metaKey) {
                             e.preventDefault();
-                            const delta = e.deltaY > 0 ? -0.1 : 0.1;
-                            updateZoom(scale + delta);
+                            const delta = e.deltaY > 0 ? -0.05 : 0.05;
+                            
+                            clearTimeout(wheelTimeout);
+                            updateZoom(scale + delta, false);
+                            
+                            wheelTimeout = setTimeout(() => {
+                                // Final adjustment after wheel stops
+                                updateZoom(scale, false);
+                            }, 100);
                         }
                     }, { passive: false });
                     
