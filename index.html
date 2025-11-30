@@ -918,8 +918,8 @@ graph TB
                         label: '21-Day Moving Average',
                         data: historicalData.map(d => d.ma21),
                         borderColor: '#ffc107',
-                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                        fill: true,
+                        backgroundColor: 'transparent',
+                        fill: false,
                         pointRadius: 0,
                         borderWidth: 3,
                         tension: 0.4
@@ -928,8 +928,8 @@ graph TB
                         label: 'Model Prediction',
                         data: historicalData.map(d => d.Total_Infected_h),
                         borderColor: '#007bff',
-                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                        fill: true,
+                        backgroundColor: 'transparent',
+                        fill: false,
                         pointRadius: 0,
                         borderWidth: 3,
                         tension: 0.4
@@ -954,7 +954,7 @@ graph TB
                             return forecastArray;
                         })(),
                         borderColor: '#6f42c1',
-                        backgroundColor: 'rgba(111, 66, 193, 0.1)',
+                        backgroundColor: 'transparent',
                         borderDash: [10, 5],
                         fill: false,
                         pointRadius: 0,
@@ -968,8 +968,8 @@ graph TB
                         label: 'Susceptible (S_h)',
                         data: allData.map(d => d.S_h),
                         borderColor: '#28a745',
-                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                        fill: true,
+                        backgroundColor: 'transparent',
+                        fill: false,
                         borderWidth: 2,
                         tension: 0.4
                     },
@@ -977,8 +977,8 @@ graph TB
                         label: 'Exposed (E_h)',
                         data: allData.map(d => d.E_h),
                         borderColor: '#ffc107',
-                        backgroundColor: 'rgba(255, 193, 7, 0.1)',
-                        fill: true,
+                        backgroundColor: 'transparent',
+                        fill: false,
                         borderWidth: 2,
                         tension: 0.4
                     },
@@ -986,8 +986,8 @@ graph TB
                         label: 'Infectious (I_h)',
                         data: allData.map(d => d.I_h),
                         borderColor: '#dc3545',
-                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                        fill: true,
+                        backgroundColor: 'transparent',
+                        fill: false,
                         borderWidth: 2,
                         tension: 0.4
                     },
@@ -995,8 +995,8 @@ graph TB
                         label: 'Quarantined (Q_h)',
                         data: allData.map(d => d.Q_h),
                         borderColor: '#fd7e14',
-                        backgroundColor: 'rgba(253, 126, 20, 0.1)',
-                        fill: true,
+                        backgroundColor: 'transparent',
+                        fill: false,
                         borderWidth: 2,
                         tension: 0.4
                     },
@@ -1004,8 +1004,8 @@ graph TB
                         label: 'Recovered (R_h)',
                         data: allData.map(d => d.R_h),
                         borderColor: '#6f42c1',
-                        backgroundColor: 'rgba(111, 66, 193, 0.1)',
-                        fill: true,
+                        backgroundColor: 'transparent',
+                        fill: false,
                         borderWidth: 2,
                         tension: 0.4
                     }
@@ -1016,8 +1016,8 @@ graph TB
                         label: 'Susceptible Rodents (S_r)',
                         data: allData.map(d => d.S_r),
                         borderColor: '#20c997',
-                        backgroundColor: 'rgba(32, 201, 151, 0.1)',
-                        fill: true,
+                        backgroundColor: 'transparent',
+                        fill: false,
                         borderWidth: 2,
                         tension: 0.4
                     },
@@ -1025,8 +1025,8 @@ graph TB
                         label: 'Exposed Rodents (E_r)',
                         data: allData.map(d => d.E_r),
                         borderColor: '#17a2b8',
-                        backgroundColor: 'rgba(23, 162, 184, 0.1)',
-                        fill: true,
+                        backgroundColor: 'transparent',
+                        fill: false,
                         borderWidth: 2,
                         tension: 0.4
                     },
@@ -1034,8 +1034,8 @@ graph TB
                         label: 'Infectious Rodents (I_r)',
                         data: allData.map(d => d.I_r),
                         borderColor: '#e83e8c',
-                        backgroundColor: 'rgba(232, 62, 140, 0.1)',
-                        fill: true,
+                        backgroundColor: 'transparent',
+                        fill: false,
                         borderWidth: 2,
                         tension: 0.4
                     }
@@ -1110,7 +1110,7 @@ graph TB
             const allValues = [];
             myChart.data.datasets.forEach(dataset => {
                 dataset.data.forEach(val => {
-                    if (val > 0) allValues.push(val);
+                    if (val != null && val > 0) allValues.push(val);
                 });
             });
             
@@ -1123,8 +1123,9 @@ graph TB
                     myChart.options.scales.y.min = Math.max(0.01, minVal * 0.5);
                     myChart.options.scales.y.max = maxVal * 2;
                 } else {
-                    delete myChart.options.scales.y.min;
-                    myChart.options.scales.y.max = maxVal * 1.1;
+                    myChart.options.scales.y.min = undefined;
+                    myChart.options.scales.y.max = undefined;
+                    myChart.options.scales.y.beginAtZero = true;
                 }
             }
             

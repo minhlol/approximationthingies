@@ -424,28 +424,95 @@ int main()
         }
     }
 
-    // Stage 2: Build human compartments from prediction
+    // Stage 2: Build human compartments using dynamic integration
     cout << "Stage 2: Building human SEIR compartments...\n";
+
+    // Initialize human state from first prediction
+    State human_state;
+    double initial_infected = all_predicted[0];
+    human_state.I_h = initial_infected * 0.65;
+    human_state.Q_h = initial_infected * 0.35;
+    human_state.E_h = initial_infected * 0.4;
+    human_state.R_h = 0;
+    human_state.S_h = N_h - human_state.E_h - human_state.I_h - human_state.Q_h - human_state.R_h;
 
     for (int day = 0; day < simulation_days; day++)
     {
-        double pred_infected = all_predicted[day];
+        // Target infected level from smoothed prediction
+        double target_infected = all_predicted[day];
 
-        // Distribute infected into I_h and Q_h
-        state.I_h = pred_infected * 0.65; // 65% infectious in community
-        state.Q_h = pred_infected * 0.35; // 35% quarantined
-        state.E_h = pred_infected * 0.4;  // Exposed proportional to infected
-
-        // Calculate cumulative recovered
-        double cumulative = 0;
-        for (int j = 0; j <= day; j++)
+        // Integrate human compartments using RK4 with adaptive force of infection
+        for (int step = 0; step < steps_per_day; step++)
         {
-            cumulative += observed.infectious[j];
-        }
-        state.R_h = cumulative * 0.85; // 85% of past cases recovered
-        state.S_h = N_h - state.E_h - state.I_h - state.Q_h - state.R_h;
+            State k1, k2, k3, k4, temp_state;
 
-        all_results[day] = state;
+            // Recalculate force of infection each step to track target
+            double current_infected = human_state.I_h + human_state.Q_h;
+            double error = target_infected - current_infected;
+            double base_foi = params.beta_2 * human_state.I_h * human_state.S_h / N_h;
+            double feedback_gain = 0.8; // Strong tracking
+            double lambda_h = base_foi + max(0.0, error * feedback_gain);
+
+            // k1
+            temp_state = human_state;
+            k1.S_h = params.theta_h - lambda_h - params.mu_h * temp_state.S_h + params.phi * temp_state.Q_h;
+            k1.E_h = lambda_h - (params.alpha_1 + params.alpha_2 + params.mu_h) * temp_state.E_h;
+            k1.I_h = params.alpha_1 * temp_state.E_h - (params.mu_h + params.delta_h + params.nu) * temp_state.I_h;
+            k1.Q_h = params.alpha_2 * temp_state.E_h - (params.phi + params.tau + params.delta_h + params.mu_h) * temp_state.Q_h;
+            k1.R_h = params.nu * temp_state.I_h + params.tau * temp_state.Q_h - params.mu_h * temp_state.R_h;
+
+            // k2
+            temp_state.S_h = human_state.S_h + k1.S_h * dt / 2;
+            temp_state.E_h = human_state.E_h + k1.E_h * dt / 2;
+            temp_state.I_h = human_state.I_h + k1.I_h * dt / 2;
+            temp_state.Q_h = human_state.Q_h + k1.Q_h * dt / 2;
+            temp_state.R_h = human_state.R_h + k1.R_h * dt / 2;
+            k2.S_h = params.theta_h - lambda_h - params.mu_h * temp_state.S_h + params.phi * temp_state.Q_h;
+            k2.E_h = lambda_h - (params.alpha_1 + params.alpha_2 + params.mu_h) * temp_state.E_h;
+            k2.I_h = params.alpha_1 * temp_state.E_h - (params.mu_h + params.delta_h + params.nu) * temp_state.I_h;
+            k2.Q_h = params.alpha_2 * temp_state.E_h - (params.phi + params.tau + params.delta_h + params.mu_h) * temp_state.Q_h;
+            k2.R_h = params.nu * temp_state.I_h + params.tau * temp_state.Q_h - params.mu_h * temp_state.R_h;
+
+            // k3
+            temp_state.S_h = human_state.S_h + k2.S_h * dt / 2;
+            temp_state.E_h = human_state.E_h + k2.E_h * dt / 2;
+            temp_state.I_h = human_state.I_h + k2.I_h * dt / 2;
+            temp_state.Q_h = human_state.Q_h + k2.Q_h * dt / 2;
+            temp_state.R_h = human_state.R_h + k2.R_h * dt / 2;
+            k3.S_h = params.theta_h - lambda_h - params.mu_h * temp_state.S_h + params.phi * temp_state.Q_h;
+            k3.E_h = lambda_h - (params.alpha_1 + params.alpha_2 + params.mu_h) * temp_state.E_h;
+            k3.I_h = params.alpha_1 * temp_state.E_h - (params.mu_h + params.delta_h + params.nu) * temp_state.I_h;
+            k3.Q_h = params.alpha_2 * temp_state.E_h - (params.phi + params.tau + params.delta_h + params.mu_h) * temp_state.Q_h;
+            k3.R_h = params.nu * temp_state.I_h + params.tau * temp_state.Q_h - params.mu_h * temp_state.R_h;
+
+            // k4
+            temp_state.S_h = human_state.S_h + k3.S_h * dt;
+            temp_state.E_h = human_state.E_h + k3.E_h * dt;
+            temp_state.I_h = human_state.I_h + k3.I_h * dt;
+            temp_state.Q_h = human_state.Q_h + k3.Q_h * dt;
+            temp_state.R_h = human_state.R_h + k3.R_h * dt;
+            k4.S_h = params.theta_h - lambda_h - params.mu_h * temp_state.S_h + params.phi * temp_state.Q_h;
+            k4.E_h = lambda_h - (params.alpha_1 + params.alpha_2 + params.mu_h) * temp_state.E_h;
+            k4.I_h = params.alpha_1 * temp_state.E_h - (params.mu_h + params.delta_h + params.nu) * temp_state.I_h;
+            k4.Q_h = params.alpha_2 * temp_state.E_h - (params.phi + params.tau + params.delta_h + params.mu_h) * temp_state.Q_h;
+            k4.R_h = params.nu * temp_state.I_h + params.tau * temp_state.Q_h - params.mu_h * temp_state.R_h;
+
+            // Update state
+            human_state.S_h += (k1.S_h + 2 * k2.S_h + 2 * k3.S_h + k4.S_h) * dt / 6;
+            human_state.E_h += (k1.E_h + 2 * k2.E_h + 2 * k3.E_h + k4.E_h) * dt / 6;
+            human_state.I_h += (k1.I_h + 2 * k2.I_h + 2 * k3.I_h + k4.I_h) * dt / 6;
+            human_state.Q_h += (k1.Q_h + 2 * k2.Q_h + 2 * k3.Q_h + k4.Q_h) * dt / 6;
+            human_state.R_h += (k1.R_h + 2 * k2.R_h + 2 * k3.R_h + k4.R_h) * dt / 6;
+
+            // Prevent negative values
+            human_state.S_h = max(0.0, human_state.S_h);
+            human_state.E_h = max(0.0, human_state.E_h);
+            human_state.I_h = max(0.0, human_state.I_h);
+            human_state.Q_h = max(0.0, human_state.Q_h);
+            human_state.R_h = max(0.0, human_state.R_h);
+        }
+
+        all_results[day] = human_state;
     }
 
     // Stage 3: Refine rodent dynamics using human infection pattern
@@ -494,10 +561,11 @@ int main()
             deriv.I_r = params.alpha_3 * temp_state.E_r - (params.mu_r + params.delta_r) * temp_state.I_r;
 
             // Add replenishment to maintain endemic infection levels
-            // When infection is low, gradually restore to endemic levels (spillover from wider environment)
-            if (temp_state.I_r < target_I_r * 0.5)
+            // Only apply during very low human activity to avoid overriding natural dynamics
+            double human_cases = all_results[day].I_h + all_results[day].Q_h;
+            if (temp_state.I_r < target_I_r * 0.3 && human_cases < 5.0)
             {
-                double replenishment_rate = 0.05; // 5% restoration per day
+                double replenishment_rate = 0.01; // Reduced from 5% to 1% per day
                 deriv.E_r += (target_E_r - temp_state.E_r) * replenishment_rate * dt;
                 deriv.I_r += (target_I_r - temp_state.I_r) * replenishment_rate * dt;
             }
@@ -590,7 +658,7 @@ int main()
 
             // If epidemic is growing or stable, use model trajectory with slight adjustment
             // If declining rapidly, use SEIR dynamics
-            if (trend > -2.0)
+            if (trend > -5.0) // Increased threshold from -2.0 to -5.0 for smoother transition
             {
                 // Growth or slow decline phase: trust the model trajectory
                 if (start_day + forecast_days < (int)all_predicted.size())
@@ -623,10 +691,11 @@ int main()
                         double immigration_rate = population_deficit * 0.001;
                         deriv.S_r += immigration_rate;
 
-                        // Add endemic maintenance if rodent infection drops too low
-                        if (temp_state.I_r < target_I_r_forecast * 0.5)
+                        // Add endemic maintenance only during very low activity
+                        double human_cases_forecast = temp_state.I_h + temp_state.Q_h;
+                        if (temp_state.I_r < target_I_r_forecast * 0.3 && human_cases_forecast < 5.0)
                         {
-                            double replenishment_rate = 0.05;
+                            double replenishment_rate = 0.01;
                             deriv.E_r += (target_E_r_forecast - temp_state.E_r) * replenishment_rate * dt;
                             deriv.I_r += (target_I_r_forecast - temp_state.I_r) * replenishment_rate * dt;
                         }

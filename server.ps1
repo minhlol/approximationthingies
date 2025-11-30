@@ -2,7 +2,7 @@ $listener = New-Object System.Net.HttpListener
 $listener.Prefixes.Add('http://localhost:8080/')
 $listener.Start()
 
-Write-Host 'Server running at http://localhost:8000/'
+Write-Host 'Server running at http://localhost:8080/'
 Write-Host 'Press Ctrl+C to stop'
 Write-Host ''
 
