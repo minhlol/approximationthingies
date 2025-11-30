@@ -4,18 +4,20 @@
 
 Make sure these files are committed and pushed:
 
-- ✅ `index.html` - The visualization webpage
-- ✅ `monkeypox_fitted_prediction.csv` - Main data file (106 KB)
-- ✅ `observed_data.csv` - Original observed data (18 KB)
-- ✅ `README.md` - Documentation
+- ✅ `index.html` - Interactive visualization webpage with Chart.js
+- ✅ `monkeypox_fitted_prediction.csv` - Main data file with 14 columns (~1289 lines, includes 21-day forecasts)
+- ✅ `monkeypox_prediction.csv` - 21-day future forecast (91 lines)
+- ✅ `observed_data.csv` - Original observed case data (1288 points)
+- ✅ `README.md` - Complete documentation
+- ✅ `DEPLOYMENT.md` - This deployment guide
 
 ## Deployment Steps
 
-1. **Check that CSV files are committed:**
+1. **Check that all required files are committed:**
    ```bash
    git status
-   git add index.html monkeypox_fitted_prediction.csv observed_data.csv
-   git commit -m "Add visualization and data files"
+   git add index.html monkeypox_fitted_prediction.csv monkeypox_prediction.csv observed_data.csv README.md DEPLOYMENT.md
+   git commit -m "Update SEIQR-SEIR model with 21-day rolling forecasts"
    git push origin main
    ```
 
@@ -40,17 +42,20 @@ Make sure these files are committed and pushed:
 
 2. **Verify files are in repository:**
    - Go to your repo on GitHub.com
-   - Make sure you can see `monkeypox_fitted_prediction.csv` in the file list
-   - Click on it to verify it has content (should show ~1288 lines)
+   - Make sure you can see both `monkeypox_fitted_prediction.csv` and `monkeypox_prediction.csv`
+   - Click on `monkeypox_fitted_prediction.csv` to verify it has ~1289 lines
+   - Click on `monkeypox_prediction.csv` to verify it has ~91 lines
 
 3. **Check file paths:**
-   - CSV files MUST be in the same directory as index.html
+   - CSV files MUST be in the same directory as index.html (root of repository)
    - Path is case-sensitive on GitHub Pages (use exact filename)
+   - Both historical and forecast CSVs are loaded by index.html
 
 4. **Verify CSV format:**
    - Open `monkeypox_fitted_prediction.csv` in a text editor
-   - First line should be: `Date,S_h,E_h,I_h,Q_h,R_h,S_r,E_r,I_r,Total_Infected_h,Observed,MA7,MA21`
-   - Data lines should have 13 comma-separated values
+   - First line should be: `Date,S_h,E_h,I_h,Q_h,R_h,S_r,E_r,I_r,Total_Infected_h,Observed,MA7,MA21,Forecast_90d`
+   - Data lines should have 14 comma-separated values (including 21-day forecast column)
+   - Open `monkeypox_prediction.csv` and verify it has: `Date,S_h,E_h,I_h,Q_h,R_h,S_r,E_r,I_r,Total_Infected_h`
 
 5. **Check .gitignore:**
    - Make sure `.gitignore` does NOT exclude `*.csv` files
@@ -89,6 +94,29 @@ Before deploying, test locally:
 - Check that Chart.js CDN is loading
 
 **Data Shows but is All Zeros:**
-- CSV file might be empty or corrupted
-- Re-run C++ program to regenerate CSV
-- Check that CSV has 13 columns per row
+- CSV files might be empty or corrupted
+- Re-run C++ program to regenerate both CSV files
+- Check that fitted prediction has 14 columns and forecast has 10 columns per row
+
+**Forecast Line Not Showing:**
+- Verify `Forecast_90d` column exists in `monkeypox_fitted_prediction.csv` (14th column)
+- Check that `monkeypox_prediction.csv` is loaded (check browser console)
+- Forecast line is purple/dashed, displayed 21 days ahead of generation point
+- When filtering by year, forecasts from previous year may predict into selected year
+
+## Visualization Features
+
+Once deployed, your visualization includes:
+
+- **Three View Modes:**
+  - Comparison: Observed vs Model vs 21-Day Forecast
+  - Human Compartments: S_h, E_h, I_h, Q_h, R_h dynamics
+  - Rodent Compartments: S_r, E_r, I_r reservoir dynamics
+
+- **Year Filtering:** 2022, 2023, 2024, 2025, or All Years
+
+- **Scale Toggle:** Linear or Logarithmic Y-axis
+
+- **Summary Statistics:** Total cases, peak values, final compartment states
+
+- **Interactive Legend:** Click to show/hide individual data series
