@@ -158,12 +158,19 @@
         // Load and parse CSV data
         async function loadData() {
             try {
+                console.log('Loading CSV from:', window.location.href);
+                console.log('Attempting to fetch: monkeypox_fitted_prediction.csv');
+                
                 const response = await fetch('monkeypox_fitted_prediction.csv');
+                console.log('Response status:', response.status, response.statusText);
+                
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const csvText = await response.text();
+                console.log('CSV loaded, length:', csvText.length, 'bytes');
                 const lines = csvText.trim().split('\n');
+                console.log('CSV lines:', lines.length);
                 
                 // Parse CSV
                 const headers = lines[0].split(',');
@@ -186,15 +193,20 @@
                     };
                 });
                 
+                console.log('Data parsed successfully, records:', allData.length);
                 initializeChart();
                 updateStats();
                 
             } catch (error) {
                 console.error('Error loading data:', error);
+                console.error('Error stack:', error.stack);
                 document.querySelector('.chart-container').innerHTML = 
-                    `<div class="loading">Error loading data: ${error.message}<br><br>
-                    Make sure monkeypox_fitted_prediction.csv is in the same directory as index.html.<br>
-                    If on GitHub Pages, ensure the CSV file is committed to the repository.</div>`;
+                    `<div class="loading">❌ Error loading data: ${error.message}<br><br>
+                    <strong>Troubleshooting:</strong><br>
+                    • Check browser console (F12) for details<br>
+                    • Ensure monkeypox_fitted_prediction.csv is in the same directory<br>
+                    • On GitHub Pages: verify CSV file is committed and pushed<br>
+                    • Current URL: ${window.location.href}</div>`;
             }
         }
         

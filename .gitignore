@@ -1,0 +1,14 @@
+# C++ compiled files
+*.exe
+*.o
+*.obj
+
+# IDE files
+.vscode/
+.vs/
+
+# Backup files
+*.bak
+
+# Do NOT ignore CSV files - they are needed for GitHub Pages
+# !*.csv is commented out because we want to include CSVs by default
