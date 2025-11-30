@@ -232,7 +232,7 @@ double calculateSSE(const std::vector<Observation> &observed, const std::vector<
 // Function to generate HTML Visualization
 void generateHTMLReport(const std::vector<Observation> &observed, const std::vector<DailyPrediction> &predicted)
 {
-    std::ofstream htmlFile("visualization.html");
+    std::ofstream htmlFile("index.html");
 
     htmlFile << "<!DOCTYPE html>\n<html>\n<head>\n<title>Monkeypox SEIR Prediction</title>\n";
     htmlFile << "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>\n";
@@ -406,7 +406,7 @@ void generateHTMLReport(const std::vector<Observation> &observed, const std::vec
     htmlFile << "</script>\n</body>\n</html>";
 
     htmlFile.close();
-    std::cout << "Visualization saved to 'visualization.html'. Open this file in your browser." << std::endl;
+    std::cout << "Visualization saved to 'index.html'. Open this file in your browser." << std::endl;
 }
 // Function to detect outbreak start points based on 7-day Moving Average trends
 std::vector<double> detectOutbreakBoundaries(const std::vector<Observation> &data)
