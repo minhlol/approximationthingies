@@ -4,112 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monkeypox SEIR Model Visualization</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 2.5em;
-        }
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 1.1em;
-        }
-        .controls {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-bottom: 40px;
-            flex-wrap: wrap;
-        }
-        .control-group {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .control-group label {
-            font-weight: 600;
-            color: #555;
-        }
-        select, button {
-            padding: 12px 24px;
-            border: 2px solid #667eea;
-            border-radius: 8px;
-            font-size: 15px;
-            cursor: pointer;
-            background: white;
-            transition: all 0.3s ease;
-        }
-        select:hover, button:hover {
-            background: #667eea;
-            color: white;
-            transform: translateY(-2px);
-        }
-        .chart-container {
-            position: relative;
-            height: 500px;
-            margin-bottom: 40px;
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 15px;
-        }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-top: 30px;
-        }
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 25px;
-            border-radius: 15px;
-            text-align: center;
-            transition: transform 0.3s ease;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-        .stat-value {
-            font-size: 36px;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        .stat-label {
-            font-size: 14px;
-            opacity: 0.95;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            font-size: 1.2em;
-            color: #667eea;
-        }
-    </style>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -149,8 +49,558 @@
         </div>
         
         <div class="stats" id="statsContainer"></div>
+        
+        <div class="architecture-section">
+            <h2>📐 Model Architecture & Flow</h2>
+            
+            <h3>Model Equations</h3>
+            
+            <h4 style="color: #555; font-size: 1.2em; margin-top: 20px;">Human Compartments (SEIQR)</h4>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 15px 0;">
+                <p style="margin-bottom: 10px;">Force of infection:</p>
+                <p style="font-size: 1.1em; margin: 10px 0;">$$\lambda_h = \frac{(\beta_1 \cdot I_r + \beta_2 \cdot I_h) \cdot S_h}{N_h}$$</p>
+                
+                <p style="margin: 20px 0 10px 0;">Differential equations:</p>
+                <div style="font-size: 1.1em; line-height: 2.2;">
+                    $$\frac{dS_h}{dt} = \theta_h - \lambda_h - \mu_h \cdot S_h + \phi \cdot Q_h$$
+                    $$\frac{dE_h}{dt} = \lambda_h - (\alpha_1 + \alpha_2 + \mu_h) \cdot E_h$$
+                    $$\frac{dI_h}{dt} = \alpha_1 \cdot E_h - (\mu_h + \delta_h + \nu) \cdot I_h$$
+                    $$\frac{dQ_h}{dt} = \alpha_2 \cdot E_h - (\phi + \tau + \delta_h + \mu_h) \cdot Q_h$$
+                    $$\frac{dR_h}{dt} = \nu \cdot I_h + \tau \cdot Q_h - \mu_h \cdot R_h$$
+                </div>
+            </div>
+            
+            <h4 style="color: #555; font-size: 1.2em; margin-top: 30px;">Rodent Compartments (SEIR)</h4>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 15px 0;">
+                <p style="margin-bottom: 10px;">Force of infection:</p>
+                <p style="font-size: 1.1em; margin: 10px 0;">$$\lambda_r = \frac{\beta_3 \cdot S_r \cdot I_r}{N_r}$$</p>
+                
+                <p style="margin: 20px 0 10px 0;">Differential equations:</p>
+                <div style="font-size: 1.1em; line-height: 2.2;">
+                    $$\frac{dS_r}{dt} = \theta_r - \lambda_r - \mu_r \cdot S_r + \text{immigration}$$
+                    $$\frac{dE_r}{dt} = \lambda_r - (\mu_r + \alpha_3) \cdot E_r + \text{replenishment}$$
+                    $$\frac{dI_r}{dt} = \alpha_3 \cdot E_r - (\mu_r + \delta_r) \cdot I_r + \text{replenishment}$$
+                </div>
+                
+                <p style="margin: 20px 0 10px 0; font-size: 0.95em;">Where:</p>
+                <div style="font-size: 1em; line-height: 1.8; padding-left: 20px;">
+                    $$\text{immigration} = (N_r - N_{r,\text{current}}) \times 0.001$$
+                    $$\text{replenishment} = 0.05 \times (\text{target} - \text{current}) \text{ if } I_r < 50\% \text{ target}$$
+                </div>
+            </div>
+            
+            <h4 style="color: #555; font-size: 1.2em; margin-top: 30px;">Numerical Integration (RK4)</h4>
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 15px 0 40px 0;">
+                <div style="font-size: 1.1em; line-height: 2.2;">
+                    $$k_1 = f(t, y)$$
+                    $$k_2 = f(t + \frac{dt}{2}, y + k_1 \cdot \frac{dt}{2})$$
+                    $$k_3 = f(t + \frac{dt}{2}, y + k_2 \cdot \frac{dt}{2})$$
+                    $$k_4 = f(t + dt, y + k_3 \cdot dt)$$
+                    $$y_{n+1} = y_n + \frac{k_1 + 2k_2 + 2k_3 + k_4}{6} \cdot dt$$
+                </div>
+                <p style="margin-top: 15px; font-size: 0.95em;">Steps per day: 10 (dt = 0.1 day)</p>
+            </div>
+            
+            <h3>System Overview</h3>
+            <div class="diagram-description">
+                Complete pipeline showing data flow through processing stages to output generation.
+            </div>
+            <div class="mermaid">
+graph TB
+    Start(["🚀 Start"])
+    
+    subgraph Input[" 📥 Data Input "]
+        direction TB
+        A1["Load Data<br/>observed_data.csv"]
+        A2["Moving Averages<br/>MA7 & MA21"]
+        A3["Outbreak Detection<br/>MA21 > 5"]
+        
+        A1 --> A2
+        A2 --> A3
+    end
+    
+    subgraph Model[" 🧬 Three-Stage Modeling "]
+        direction TB
+        B1["📈 Stage 1<br/>Exponential Smoothing"]
+        B2["👥 Stage 2<br/>Human SEIQR"]
+        B3["🐀 Stage 3<br/>Rodent SEIR"]
+        B4["📊 Analysis<br/>RMSE & Validation"]
+        
+        B1 --> B2
+        B2 --> B3
+        B3 --> B4
+    end
+    
+    subgraph Forecast[" 🔮 Forecasting "]
+        direction TB
+        C1["Generate Predictions<br/>21-day windows"]
+        C2["Validation Check<br/>Trend analysis"]
+        
+        C1 --> C2
+    end
+    
+    subgraph Output[" 💾 Output "]
+        direction TB
+        D1["fitted_prediction.csv"]
+        D2["prediction.csv"]
+        D3["index.html"]
+        
+        D1 --> D3
+        D2 --> D3
+    end
+    
+    Start --> Input
+    Input --> Model
+    Model --> Forecast
+    Forecast --> Output
+    Output --> End(["✅ Complete"])
+    
+    C2 -.->|Refine| B3
+    
+    style Input fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    style Model fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style Forecast fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    style Output fill:#e8f5e9,stroke:#388e3c,stroke-width:2px
+    style Start fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+    style End fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
+            </div>
+            
+            <h3>Three-Stage Model Detail</h3>
+            <div class="diagram-description">
+                Sequential transformation from raw observations through human epidemiology to zoonotic reservoir dynamics.
+            </div>
+            <div class="mermaid">
+graph LR
+    subgraph S1[" 📈 Stage 1: Data Smoothing "]
+        direction TB
+        Raw["📊 Raw Cases<br/>Daily observations"]
+        Raw --> MA21["📉 MA21<br/>21-day window"]
+        MA21 --> Smooth["🎯 Exponential Smooth<br/>α=0.25 blend factor<br/>Reduces noise"]
+    end
+    
+    subgraph S2[" 👥 Stage 2: Human SEIQR "]
+        direction TB
+        SplitIQ["🔀 Infectious Split<br/>I_h + Q_h from prediction"]
+        SplitIQ --> FlowE["⬅️ Backtrack E_h<br/>Using α₁ and α₂ rates"]
+        FlowE --> CalcR["➡️ Accumulate R_h<br/>Recovery ν and τ rates"]
+        CalcR --> CalcS["🔢 Derive S_h<br/>Closure: N_h - E - I - Q - R"]
+    end
+    
+    subgraph S3[" 🐀 Stage 3: Rodent SEIR "]
+        direction TB
+        Init["🎲 Initialize<br/>S_r, E_r, I_r states"]
+        Init --> RK4["⚙️ RK4 Integration<br/>10 steps per day<br/>Cross-species coupling"]
+        RK4 --> Maintain["♻️ Homeostasis<br/>Endemic replenishment<br/>Target I_r = 1.5%"]
+    end
+    
+    S1 --> S2
+    S2 --> S3
+    
+    style S1 fill:#e1f5ff,stroke:#0077cc,stroke-width:2px
+    style S2 fill:#fff4e1,stroke:#ff9900,stroke-width:2px
+    style S3 fill:#ffe1f5,stroke:#cc0077,stroke-width:2px
+            </div>
+            
+            <h3>SEIQR-SEIR Compartmental Structure</h3>
+            <div class="diagram-description">
+                Two-population epidemic model with human SEIQR compartments and rodent SEIR reservoir. Cross-species transmission pathways shown with dashed arrows.
+            </div>
+            <div class="mermaid">
+graph TB
+    subgraph Human[" 👥 Human Population: SEIQR Model "]
+        direction LR
+        Sh["<b>S_h</b><br/>Susceptible<br/>Healthy population"]
+        Eh["<b>E_h</b><br/>Exposed<br/>Incubating virus"]
+        Ih["<b>I_h</b><br/>Infectious<br/>Undetected cases"]
+        Qh["<b>Q_h</b><br/>Quarantined<br/>Isolated cases"]
+        Rh["<b>R_h</b><br/>Recovered<br/>Immune"]
+        
+        Sh -->|λ_h infection| Eh
+        Eh -->|α₁ progression| Ih
+        Eh -->|α₂ detection| Qh
+        Ih -->|ν recovery| Rh
+        Qh -->|τ recovery| Rh
+        Qh -->|φ release| Sh
+    end
+    
+    subgraph Rodent[" 🐀 Rodent Reservoir: SEIR Model "]
+        direction LR
+        Sr["<b>S_r</b><br/>Susceptible<br/>Healthy rodents"]
+        Er["<b>E_r</b><br/>Exposed<br/>Incubating"]
+        Ir["<b>I_r</b><br/>Infectious<br/>Viral shedding"]
+        
+        Sr -->|λ_r infection| Er
+        Er -->|α₃ progression| Ir
+        Sr -.->|Immigration| Sr
+        Ir -.->|Replenishment| Ir
+    end
+    
+    Ir ==>|β₁ spillover<br/>Zoonotic transmission| Sh
+    Ih ==>|β₂ transmission<br/>Human-to-human| Sh
+    
+    style Human fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
+    style Rodent fill:#fce4ec,stroke:#c2185b,stroke-width:3px
+    style Sh fill:#c8e6c9
+    style Eh fill:#fff9c4
+    style Ih fill:#ffccbc
+    style Qh fill:#ff8a65
+    style Rh fill:#b39ddb
+    style Sr fill:#c8e6c9
+    style Er fill:#fff9c4
+    style Ir fill:#ffccbc
+            </div>
+            
+            <h3>21-Day Forecast Generation</h3>
+            <div class="diagram-description">
+                Adaptive forecasting algorithm that selects between trajectory-based and mechanistic predictions based on epidemic phase.
+            </div>
+            <div class="mermaid">
+graph TB
+    Start(["🔁 For Each Day<br/>in Historical Data"])
+    Start --> Trend{"📊 Analyze 7-Day Trend<br/>Growth Rate"}
+    
+    Trend -->|"📈 Trend ≥ -2<br/>Growth/Stable"| PathA["🎯 Trajectory Method<br/>High confidence in model"]
+    Trend -->|"📉 Trend < -2<br/>Rapid Decline"| PathB["⚙️ Mechanistic Method<br/>SEIQR-SEIR dynamics"]
+    
+    PathA --> Lookup["🔍 Lookup Future<br/>Model prediction at day+21"]
+    Lookup --> Blend["🎨 Blend Values<br/>90% future + 10% current<br/>Smooth transition"]
+    Blend --> Output
+    
+    PathB --> RodentCheck{"🐀 Check Reservoir<br/>I_r > 0.01?"}
+    RodentCheck -->|"✅ Yes<br/>Active reservoir"| FullSim["🔬 Full Two-Population<br/>With β₁ spillover term<br/>Cross-species coupling"]
+    RodentCheck -->|"❌ No<br/>Negligible reservoir"| SimpleSim["👥 Human-Only Model<br/>No zoonotic forcing<br/>Epidemic fadeout"]
+    
+    FullSim --> Integrate["⚙️ RK4 Integration<br/>21 days × 10 steps/day<br/>Homeostasis maintained"]
+    SimpleSim --> Integrate
+    Integrate --> Output
+    
+    Output["💾 Store Forecast<br/>at day+21 index"]
+    Output --> Continue{"❓ More Days?"}
+    Continue -->|"Yes"| Start
+    Continue -->|"No"| Done(["✅ Forecasting Complete<br/>All points processed"])
+    
+    style PathA fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    style PathB fill:#ffccbc,stroke:#d84315,stroke-width:2px
+    style FullSim fill:#fff9c4
+    style SimpleSim fill:#e1bee7
+    style Integrate fill:#b3e5fc
+    style Start fill:#f0f0f0
+    style Done fill:#c8e6c9
+            </div>
+            
+            <h3>Key Parameters</h3>
+            <div class="diagram-description">
+                Parameter dependencies and relationships showing how transmission, progression, and control rates interact within the two-population model.
+            </div>
+            <div class="mermaid">
+graph TB
+    subgraph Pop[" 📊 Population Structure "]
+        NH["<b>N_h</b> = 1,000,000<br/>Human population<br/>Determines λ_h denominator"]
+        NR["<b>N_r</b> = 100,000<br/>Rodent population<br/>Determines λ_r denominator"]
+        Target["<b>Target I_r</b> = 1.5%<br/>Endemic equilibrium<br/>Replenishment threshold"]
+    end
+    
+    subgraph Trans[" 🔀 Transmission Rates "]
+        B1["<b>β₁</b> = 0.00008/day<br/>🐀→👤 Spillover<br/>Drives zoonotic force"]
+        B2["<b>β₂</b> = 0.00012/day<br/>👤→👤 Human spread<br/>1.5× stronger than β₁"]
+        B3["<b>β₃</b> = 0.0003/day<br/>🐀→🐀 Rodent spread<br/>Maintains reservoir"]
+    end
+    
+    subgraph FOI[" ⚡ Force of Infection "]
+        LambdaH["<b>λ_h</b> = (β₁·I_r + β₂·I_h)·S_h/N_h<br/>Human infection pressure<br/>Two sources: rodent + human"]
+        LambdaR["<b>λ_r</b> = β₃·S_r·I_r/N_r<br/>Rodent infection pressure<br/>Frequency-dependent"]
+    end
+    
+    subgraph Prog[" ⏱️ Disease Progression "]
+        A1["<b>α₁</b> = 0.143/day<br/>E_h → I_h pathway<br/>~7 days to symptoms"]
+        A2["<b>α₂</b> = 0.067/day<br/>E_h → Q_h pathway<br/>~15 days to detection"]
+        A3["<b>α₃</b> = 0.20/day<br/>E_r → I_r pathway<br/>~5 days (faster in rodents)"]
+        Branching["Branching: α₁ + α₂<br/>Detection fraction: α₂/(α₁+α₂)≈32%"]
+    end
+    
+    subgraph Rec[" 🏥 Recovery & Control "]
+        Nu["<b>ν</b> = 0.067/day<br/>I_h → R_h recovery<br/>~15 days untreated"]
+        Tau["<b>τ</b> = 0.143/day<br/>Q_h → R_h recovery<br/>~7 days (2× faster)"]
+        Phi["<b>φ</b> = 0.20/day<br/>Q_h → S_h release<br/>False positive pathway"]
+        IsolationBenefit["Isolation effect:<br/>τ > ν (faster recovery)<br/>Reduces transmission"]
+    end
+    
+    subgraph Death[" ⚠️ Mortality & Turnover "]
+        DH["<b>δ_h</b> disease CFR"]
+        DR["<b>δ_r</b> rodent disease death"]
+        MuH["<b>μ_h</b> natural death"]
+        MuR["<b>μ_r</b> natural death"]
+        ThetaH["<b>θ_h</b> birth/immigration<br/>Maintains N_h"]
+        ThetaR["<b>θ_r</b> rodent birth<br/>Maintains N_r"]
+    end
+    
+    %% Relationships between parameter groups
+    NH --> LambdaH
+    NR --> LambdaR
+    B1 --> LambdaH
+    B2 --> LambdaH
+    B3 --> LambdaR
+    
+    LambdaH -.->|"Drives E_h"| Prog
+    LambdaR -.->|"Drives E_r"| Prog
+    
+    A1 -.-> Nu
+    A2 -.-> Tau
+    A2 -.-> Phi
+    
+    Target -.->|"Threshold"| B3
+    NR -.->|"Scale"| Target
+    
+    ThetaH -.-> NH
+    ThetaR -.-> NR
+    MuH -.-> NH
+    MuR -.-> NR
+    
+    Branching -.->|"Splitting"| A1
+    Branching -.->|"Splitting"| A2
+    IsolationBenefit -.->|"Compare"| Nu
+    IsolationBenefit -.->|"Compare"| Tau
+    
+    style Pop fill:#fff3e0,stroke:#f57c00,stroke-width:3px
+    style Trans fill:#ffebee,stroke:#c62828,stroke-width:3px
+    style FOI fill:#e1f5fe,stroke:#01579b,stroke-width:3px
+    style Prog fill:#f3e5f5,stroke:#6a1b9a,stroke-width:3px
+    style Rec fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px
+    style Death fill:#fafafa,stroke:#616161,stroke-width:2px
+    style LambdaH fill:#b3e5fc,stroke:#0277bd,stroke-width:2px
+    style LambdaR fill:#b3e5fc,stroke:#0277bd,stroke-width:2px
+    style Branching fill:#ce93d8,stroke:#6a1b9a,stroke-width:2px
+    style IsolationBenefit fill:#a5d6a7,stroke:#2e7d32,stroke-width:2px
+            </div>
+        </div>
     </div>
 
+    <script>
+        // Initialize Mermaid with KaTeX support
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: false,
+                htmlLabels: true,
+                curve: 'basis',
+                padding: 20,
+                diagramPadding: 20,
+                nodeSpacing: 50,
+                rankSpacing: 50
+            },
+            themeVariables: {
+                fontSize: '18px',
+                fontFamily: 'Segoe UI, Arial, sans-serif',
+                edgeLabelBackground: '#ffffff',
+                lineColor: '#666',
+                primaryColor: '#f8f9fa',
+                primaryTextColor: '#333',
+                primaryBorderColor: '#666',
+                secondaryColor: '#fff',
+                tertiaryColor: '#f8f9fa'
+            },
+            katex: {
+                enabled: true
+            }
+        });
+        
+        // Add zoom and pan functionality to all mermaid diagrams
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for mermaid to fully render all diagrams
+            setTimeout(() => {
+                const mermaidContainers = document.querySelectorAll('.mermaid');
+                
+                mermaidContainers.forEach((container, index) => {
+                    // Wait a bit more for complex diagrams
+                    setTimeout(() => {
+                        const svg = container.querySelector('svg');
+                        if (!svg) {
+                            console.warn('No SVG found in diagram', index);
+                            return;
+                        }
+                        
+                        // Check if controls already exist
+                        if (container.querySelector('.diagram-zoom-controls')) {
+                            return;
+                        }
+                        
+                        let scale = 1;
+                        let isPanning = false;
+                        let startX, startY, scrollLeft, scrollTop;
+                        
+                        // Wrap SVG for better zoom control
+                        if (!svg.parentElement.classList.contains('svg-wrapper')) {
+                            const wrapper = document.createElement('div');
+                            wrapper.className = 'svg-wrapper';
+                            svg.parentNode.insertBefore(wrapper, svg);
+                            wrapper.appendChild(svg);
+                        }
+                        
+                        const wrapper = svg.parentElement;
+                        
+                        // Calculate fit-to-screen scale
+                        let initialScale = 1;
+                        setTimeout(() => {
+                            const containerWidth = container.clientWidth - 60; // Account for padding
+                            const containerHeight = container.clientHeight - 60;
+                            const svgWidth = svg.scrollWidth || svg.clientWidth;
+                            const svgHeight = svg.scrollHeight || svg.clientHeight;
+                            
+                            if (svgWidth > 0 && svgHeight > 0) {
+                                const scaleX = containerWidth / svgWidth;
+                                const scaleY = containerHeight / svgHeight;
+                                initialScale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+                                scale = initialScale;
+                                updateZoom(scale);
+                                
+                                // Center the diagram after initial zoom
+                                setTimeout(() => {
+                                    const maxScrollLeft = container.scrollWidth - container.clientWidth;
+                                    const maxScrollTop = container.scrollHeight - container.clientHeight;
+                                    container.scrollLeft = Math.max(0, maxScrollLeft / 2);
+                                    container.scrollTop = Math.max(0, maxScrollTop / 2);
+                                }, 50);
+                            }
+                        }, 100);
+                        
+                        // Create zoom controls
+                        const controls = document.createElement('div');
+                        controls.className = 'diagram-zoom-controls';
+                        controls.innerHTML = `
+                            <button class="zoom-btn zoom-in" title="Zoom In">+</button>
+                            <button class="zoom-btn zoom-reset" title="Reset Zoom">⟲</button>
+                            <button class="zoom-btn zoom-out" title="Zoom Out">−</button>
+                        `;
+                        container.style.position = 'relative';
+                        container.insertBefore(controls, container.firstChild);
+                        
+                        // Zoom functions
+                        function updateZoom(newScale) {
+                            scale = Math.max(0.5, Math.min(3, newScale));
+                            
+                            if (wrapper.classList.contains('svg-wrapper')) {
+                                wrapper.style.transform = `scale(${scale})`;
+                                
+                                // Update wrapper size to accommodate scaled content
+                                const baseWidth = svg.scrollWidth || svg.clientWidth;
+                                const baseHeight = svg.scrollHeight || svg.clientHeight;
+                                wrapper.style.width = (baseWidth * scale) + 'px';
+                                wrapper.style.height = (baseHeight * scale) + 'px';
+                                wrapper.style.margin = '0 auto';
+                            } else {
+                                svg.style.transform = `scale(${scale})`;
+                            }
+                        }
+                    
+                    // Button controls
+                    controls.querySelector('.zoom-in').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        updateZoom(scale + 0.2);
+                    });
+                    
+                    controls.querySelector('.zoom-out').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        updateZoom(scale - 0.2);
+                    });
+                    
+                    controls.querySelector('.zoom-reset').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        updateZoom(initialScale);
+                        // Reset to bottom right position
+                        setTimeout(() => {
+                            container.scrollLeft = container.scrollWidth - container.clientWidth;
+                            container.scrollTop = container.scrollHeight - container.clientHeight;
+                        }, 50);
+                    });
+                    
+                    // Mouse wheel zoom
+                    container.addEventListener('wheel', (e) => {
+                        if (e.ctrlKey || e.metaKey) {
+                            e.preventDefault();
+                            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                            updateZoom(scale + delta);
+                        }
+                    }, { passive: false });
+                    
+                    // Pan with mouse drag
+                    container.addEventListener('mousedown', (e) => {
+                        if (e.target.closest('.diagram-zoom-controls')) return;
+                        isPanning = true;
+                        startX = e.pageX - container.offsetLeft;
+                        startY = e.pageY - container.offsetTop;
+                        scrollLeft = container.scrollLeft;
+                        scrollTop = container.scrollTop;
+                    });
+                    
+                    container.addEventListener('mouseleave', () => {
+                        isPanning = false;
+                    });
+                    
+                    container.addEventListener('mouseup', () => {
+                        isPanning = false;
+                    });
+                    
+                    container.addEventListener('mousemove', (e) => {
+                        if (!isPanning) return;
+                        e.preventDefault();
+                        const x = e.pageX - container.offsetLeft;
+                        const y = e.pageY - container.offsetTop;
+                        const walkX = (x - startX) * 1.5;
+                        const walkY = (y - startY) * 1.5;
+                        container.scrollLeft = scrollLeft - walkX;
+                        container.scrollTop = scrollTop - walkY;
+                    });
+                    
+                    // Touch support for mobile pinch zoom
+                    let touchStartDistance = 0;
+                    let touchStartScale = 1;
+                    let touchStartX = 0;
+                    let touchStartY = 0;
+                    
+                    container.addEventListener('touchstart', (e) => {
+                        if (e.touches.length === 2) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            touchStartDistance = Math.hypot(
+                                e.touches[0].pageX - e.touches[1].pageX,
+                                e.touches[0].pageY - e.touches[1].pageY
+                            );
+                            touchStartScale = scale;
+                            
+                            // Calculate touch center for zoom origin
+                            touchStartX = (e.touches[0].pageX + e.touches[1].pageX) / 2;
+                            touchStartY = (e.touches[0].pageY + e.touches[1].pageY) / 2;
+                        }
+                    }, { passive: false });
+                    
+                    container.addEventListener('touchmove', (e) => {
+                        if (e.touches.length === 2) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            const touchDistance = Math.hypot(
+                                e.touches[0].pageX - e.touches[1].pageX,
+                                e.touches[0].pageY - e.touches[1].pageY
+                            );
+                            
+                            const newScale = touchStartScale * (touchDistance / touchStartDistance);
+                            updateZoom(newScale);
+                        }
+                    }, { passive: false });
+                    
+                    container.addEventListener('touchend', (e) => {
+                        if (e.touches.length < 2) {
+                            touchStartDistance = 0;
+                        }
+                    }, { passive: false });
+                    }, index * 100); // Stagger initialization for complex diagrams
+                });
+            }, 800); // Increased timeout to ensure all diagrams are rendered
+        });
+        
+    </script>
     <script>
         let allData = [];
         let historicalData = [];
@@ -615,6 +1065,17 @@
         
         // Load data on page load
         loadData();
+        
+        // Render KaTeX math expressions
+        document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: "$$", right: "$$", display: true},
+                    {left: "$", right: "$", display: false}
+                ],
+                throwOnError: false
+            });
+        });
     </script>
 </body>
 </html>

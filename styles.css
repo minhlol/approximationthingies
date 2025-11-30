@@ -1,0 +1,247 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 2.5em;
+}
+
+.subtitle {
+    text-align: center;
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 1.1em;
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.control-group label {
+    font-weight: 600;
+    color: #555;
+}
+
+select, button {
+    padding: 12px 24px;
+    border: 2px solid #667eea;
+    border-radius: 8px;
+    font-size: 15px;
+    cursor: pointer;
+    background: white;
+    transition: all 0.3s ease;
+}
+
+select:hover, button:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.chart-container {
+    position: relative;
+    height: 500px;
+    margin-bottom: 40px;
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 15px;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 30px;
+}
+
+.stat-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 25px;
+    border-radius: 15px;
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-value {
+    font-size: 36px;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.stat-label {
+    font-size: 14px;
+    opacity: 0.95;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.loading {
+    text-align: center;
+    padding: 40px;
+    font-size: 1.2em;
+    color: #667eea;
+}
+
+.architecture-section {
+    margin-top: 60px;
+    padding-top: 40px;
+    border-top: 3px solid #e0e0e0;
+}
+
+.architecture-section h2 {
+    color: #333;
+    font-size: 2em;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.architecture-section h3 {
+    color: #555;
+    font-size: 1.5em;
+    margin-top: 40px;
+    margin-bottom: 20px;
+}
+
+.mermaid {
+    background: #f8f9fa;
+    padding: 30px;
+    border-radius: 15px;
+    margin: 20px 0;
+    overflow: auto;
+    display: block;
+    position: relative;
+    touch-action: none;
+    cursor: grab;
+    min-height: 400px;
+    -webkit-overflow-scrolling: touch;
+}
+
+.mermaid:active {
+    cursor: grabbing;
+}
+
+.mermaid-inner {
+    display: inline-block;
+    min-width: 100%;
+    min-height: 100%;
+    text-align: center;
+}
+
+.mermaid svg {
+    max-width: none;
+    height: auto;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.mermaid .svg-wrapper {
+    display: inline-block;
+    transition: transform 0.2s ease;
+    transform-origin: center center;
+    padding: 50px;
+    min-width: 100%;
+}
+
+.diagram-zoom-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
+    z-index: 10;
+    background: white;
+    padding: 5px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.zoom-btn {
+    width: 35px;
+    height: 35px;
+    padding: 0;
+    border: 1px solid #ddd;
+    background: white;
+    color: #333;
+    font-size: 18px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: all 0.2s;
+}
+
+.zoom-btn:hover {
+    background: #667eea;
+    color: white;
+    transform: none;
+}
+
+.mermaid .edgeLabel {
+    background-color: #ffffff !important;
+    padding: 6px 10px !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
+    font-weight: 600 !important;
+    border: 1px solid #e0e0e0 !important;
+}
+
+.mermaid .edgeLabel span {
+    background-color: #ffffff !important;
+    padding: 2px 4px !important;
+}
+
+.mermaid .edgePath .path {
+    stroke-width: 2px !important;
+}
+
+.mermaid text {
+    font-family: 'Segoe UI', Arial, sans-serif !important;
+}
+
+.diagram-description {
+    color: #666;
+    font-size: 1em;
+    margin-bottom: 15px;
+    padding: 15px;
+    background: #f0f0f0;
+    border-left: 4px solid #667eea;
+    border-radius: 5px;
+}
