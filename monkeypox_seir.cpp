@@ -396,17 +396,29 @@ int main()
     vector<double> all_predicted = ma21; // Use 21-day MA as model prediction
 
     // Build state data from observed + MA
+    // Use actual observed cases as the primary data
     for (int i = 0; i < simulation_days; i++)
     {
         State state;
-        double infected = ma21[i];
-        double total_affected = observed.infectious[i] * 10; // Estimate total affected
+        double obs_infected = observed.infectious[i];
+        double ma_infected = ma21[i];
 
-        state.S_h = N_h - total_affected;
-        state.E_h = infected * 0.3;
-        state.I_h = infected * 0.5;
-        state.Q_h = infected * 0.2;
-        state.R_h = total_affected - infected;
+        // Use observed values for actual infectious
+        // Use MA for compartment estimates
+        state.I_h = obs_infected * 0.6; // 60% in infectious compartment
+        state.Q_h = obs_infected * 0.4; // 40% in quarantine
+        state.E_h = ma_infected * 0.5;  // Exposed based on MA trend
+
+        // Calculate cumulative affected
+        double cumulative = 0;
+        for (int j = 0; j <= i; j++)
+        {
+            cumulative += observed.infectious[j];
+        }
+
+        state.R_h = cumulative * 0.8; // 80% of cumulative cases recovered
+        state.S_h = N_h - state.E_h - state.I_h - state.Q_h - state.R_h;
+
         state.S_r = N_r;
         state.E_r = 0;
         state.I_r = 0;
