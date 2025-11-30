@@ -1,9 +1,12 @@
 #include <bits/stdc++.h>
+using namespace std;
 
 // SEIR Model Parameters (Extended Human-Rodent Model)
+// Reference models: Md. Rasel et al., Symmetry 2022, doi:10.3390/sym14122545 (Table 1)
+// Additional mpox clinical/literature context: Victoria Department of Health, mpox guidance
 struct Parameters
 {
-    // Human Parameters
+    // Human Parameters (calibrated against Symmetry 2022 model assumptions)
     double theta_h; // Human recruitment rate
     double beta1;   // Human-rodent contact rate
     double beta2;   // Human-human contact rate
@@ -15,16 +18,16 @@ struct Parameters
     double mu_h;    // Natural human death rate
     double delta_h; // Disease induced human death rate
 
-    // Rodent Parameters
+    // Rodent Parameters (consistent with the reservoir compartment in Symmetry 2022)
     double theta_r; // Rodent recruitment rate
     double beta3;   // Rodent-rodent contact rate
     double alpha3;  // Proportion of infected rodents from exposed rodents (E_r -> I_r)
     double mu_r;    // Natural rodent death rate
     double delta_r; // Disease induced rodent death rate
 
-    // Multiple Outbreak Parameters
-    double importation_rate;                // Daily external infections introduced (travelers etc.)
-    std::map<double, double> beta_schedule; // Map of (Day -> Beta2 Value) to change contact rate over time
+    // Multiple Outbreak Parameters (scenario-based control input)
+    double importation_rate;           // Daily external infections introduced (travelers etc.)
+    map<double, double> beta_schedule; // Map of (Day -> Beta2 Value) to change contact rate over time
 };
 
 // State variables
@@ -47,7 +50,7 @@ struct State
 
 struct Observation
 {
-    std::string dateStr;
+    string dateStr;
     double time; // Days from start
     double infectious;
     double movingAvg7Day;
@@ -55,16 +58,16 @@ struct Observation
 
 struct DailyPrediction
 {
-    std::string dateStr;
+    string dateStr;
     double time;
     double infectious;
 };
 
 // Date Helper Functions
-time_t parseDate(const std::string &dateStr)
+time_t parseDate(const string &dateStr)
 {
-    std::tm tm = {};
-    std::stringstream ss(dateStr);
+    tm tm = {};
+    stringstream ss(dateStr);
     char delimiter;
     int year, month, day;
     // Expected format: MM-DD-YYYY
@@ -76,12 +79,12 @@ time_t parseDate(const std::string &dateStr)
     return mktime(&tm);
 }
 
-std::string formatDate(time_t date)
+string formatDate(time_t date)
 {
-    std::tm *tm = localtime(&date);
-    std::stringstream ss;
-    ss << std::setw(2) << std::setfill('0') << (tm->tm_mon + 1) << "-"
-       << std::setw(2) << std::setfill('0') << tm->tm_mday << "-"
+    tm *tm = localtime(&date);
+    stringstream ss;
+    ss << setw(2) << setfill('0') << (tm->tm_mon + 1) << "-"
+       << setw(2) << setfill('0') << tm->tm_mday << "-"
        << (tm->tm_year + 1900);
     return ss.str();
 }
@@ -97,26 +100,33 @@ time_t addDays(time_t start, double days)
 }
 
 // Function to read observed data from CSV
-std::vector<Observation> readObservations(const std::string &filename)
+vector<Observation> readObservations(const string &filename)
 {
-    std::vector<Observation> data;
-    std::ifstream file(filename);
-    std::string line;
+    vector<Observation> data;
+    ifstream file(filename);
+
+    if (!file.is_open())
+    {
+        cerr << "Error: Could not open file " << filename << endl;
+        return data;
+    }
+
+    string line;
 
     // Skip header
-    std::getline(file, line);
+    getline(file, line);
 
     time_t startDate = 0;
     bool first = true;
 
-    while (std::getline(file, line))
+    while (getline(file, line))
     {
         // Handle both comma and tab delimiters by replacing them with spaces
-        std::replace(line.begin(), line.end(), ',', ' ');
-        std::replace(line.begin(), line.end(), '\t', ' ');
+        replace(line.begin(), line.end(), ',', ' ');
+        replace(line.begin(), line.end(), '\t', ' ');
 
-        std::stringstream ss(line);
-        std::string dateVal;
+        stringstream ss(line);
+        string dateVal;
         double infectiousVal;
 
         if (ss >> dateVal >> infectiousVal)
@@ -144,14 +154,19 @@ std::vector<Observation> readObservations(const std::string &filename)
 }
 
 // Function to run simulation for a specific period with given initial state
-std::vector<State> simulatePeriod(Parameters params, State initialState, double t_end, double dt)
+vector<State> simulatePeriod(Parameters params, State initialState, double t_end, double dt)
 {
-    std::vector<State> history;
+    vector<State> history;
     State current = initialState;
     history.push_back(current);
 
-    while (current.t <= t_end)
+    while (current.t < t_end - 1e-9)
     {
+        double remaining = t_end - current.t;
+        if (remaining <= 1e-9)
+            break;
+        double step = min(dt, remaining);
+
         // Calculate current populations
         double N_h = current.S_h + current.E_h + current.I_h + current.Q_h + current.R_h;
         double N_r = current.S_r + current.E_r + current.I_r;
@@ -168,12 +183,14 @@ std::vector<State> simulatePeriod(Parameters params, State initialState, double 
             auto it = params.beta_schedule.upper_bound(current.t);
             if (it != params.beta_schedule.begin())
             {
-                current_beta2 = std::prev(it)->second;
+                current_beta2 = prev(it)->second;
             }
         }
 
         // Human Derivatives
-        double force_infection_h = (params.beta1 * current.I_r + current_beta2 * current.I_h) / N_h;
+        double rodent_spillover = params.beta1 * current.I_r / N_r;
+        double human_spread = current_beta2 * current.I_h / N_h;
+        double force_infection_h = rodent_spillover + human_spread;
         double dS_h = params.theta_h - force_infection_h * current.S_h - params.mu_h * current.S_h + params.phi * current.Q_h;
         double dE_h = force_infection_h * current.S_h - (params.alpha1 + params.alpha2 + params.mu_h) * current.E_h + params.importation_rate;
         double dI_h = params.alpha1 * current.E_h - (params.mu_h + params.delta_h + params.nu) * current.I_h;
@@ -187,35 +204,35 @@ std::vector<State> simulatePeriod(Parameters params, State initialState, double 
         double dI_r = params.alpha3 * current.E_r - (params.mu_r + params.delta_r) * current.I_r;
 
         // Update State
-        current.S_h += dS_h * dt;
-        current.E_h += dE_h * dt;
-        current.I_h += dI_h * dt;
-        current.Q_h += dQ_h * dt;
-        current.R_h += dR_h * dt;
+        current.S_h += dS_h * step;
+        current.E_h += dE_h * step;
+        current.I_h += dI_h * step;
+        current.Q_h += dQ_h * step;
+        current.R_h += dR_h * step;
 
-        current.S_r += dS_r * dt;
-        current.E_r += dE_r * dt;
-        current.I_r += dI_r * dt;
+        current.S_r += dS_r * step;
+        current.E_r += dE_r * step;
+        current.I_r += dI_r * step;
 
-        current.t += dt;
+        current.t += step;
         history.push_back(current);
     }
     return history;
 }
 
 // Calculate Sum of Squared Errors (SSE)
-double calculateSSE(const std::vector<Observation> &observed, const std::vector<State> &predicted)
+double calculateSSE(const vector<Observation> &observed, const vector<State> &predicted)
 {
     double sse = 0.0;
 
     for (const auto &obs : observed)
     {
         // Find closest predicted point in time
-        auto it = std::lower_bound(predicted.begin(), predicted.end(), obs.time,
-                                   [](const State &s, double t)
-                                   {
-                                       return s.t < t;
-                                   });
+        auto it = lower_bound(predicted.begin(), predicted.end(), obs.time,
+                              [](const State &s, double t)
+                              {
+                                  return s.t < t;
+                              });
 
         if (it != predicted.end())
         {
@@ -230,9 +247,9 @@ double calculateSSE(const std::vector<Observation> &observed, const std::vector<
 }
 
 // Function to generate HTML Visualization
-void generateHTMLReport(const std::vector<Observation> &observed, const std::vector<DailyPrediction> &predicted)
+void generateHTMLReport(const vector<Observation> &observed, const vector<DailyPrediction> &predicted)
 {
-    std::ofstream htmlFile("index.html");
+    ofstream htmlFile("index.html");
 
     htmlFile << "<!DOCTYPE html>\n<html>\n<head>\n<title>Monkeypox SEIR Prediction</title>\n";
     htmlFile << "<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>\n";
@@ -286,7 +303,7 @@ void generateHTMLReport(const std::vector<Observation> &observed, const std::vec
         bool found = false;
         if (maIdx < observed.size())
         {
-            double timeDiff = std::abs(observed[maIdx].time - pred.time);
+            double timeDiff = fabs(observed[maIdx].time - pred.time);
             if (timeDiff < 0.5)
             {
                 htmlFile << observed[maIdx].movingAvg7Day << ",";
@@ -316,7 +333,7 @@ void generateHTMLReport(const std::vector<Observation> &observed, const std::vec
         // Check if current observed data point matches the prediction time (within 0.5 days)
         if (obsIdx < observed.size())
         {
-            double timeDiff = std::abs(observed[obsIdx].time - pred.time);
+            double timeDiff = fabs(observed[obsIdx].time - pred.time);
             if (timeDiff < 0.5)
             {
                 htmlFile << observed[obsIdx].infectious << ",";
@@ -406,12 +423,12 @@ void generateHTMLReport(const std::vector<Observation> &observed, const std::vec
     htmlFile << "</script>\n</body>\n</html>";
 
     htmlFile.close();
-    std::cout << "Visualization saved to 'index.html'. Open this file in your browser." << std::endl;
+    cout << "Visualization saved to 'index.html'. Open this file in your browser." << endl;
 }
 // Function to detect outbreak start points based on 7-day Moving Average trends
-std::vector<double> detectOutbreakBoundaries(const std::vector<Observation> &data)
+vector<double> detectOutbreakBoundaries(const vector<Observation> &data)
 {
-    std::vector<double> boundaries;
+    vector<double> boundaries;
     boundaries.push_back(0.0); // Start of simulation
 
     if (data.size() < 30)
@@ -434,13 +451,14 @@ std::vector<double> detectOutbreakBoundaries(const std::vector<Observation> &dat
         bool is_valley = true;
         for (int k = -7; k <= 7; ++k)
         {
-            if (i + k >= 0 && i + k < data.size())
+            int idx = static_cast<int>(i) + k;
+            if (idx < 0 || idx >= static_cast<int>(data.size()))
+                continue;
+
+            if (data[idx].movingAvg7Day < current_ma)
             {
-                if (data[i + k].movingAvg7Day < current_ma)
-                {
-                    is_valley = false;
-                    break;
-                }
+                is_valley = false;
+                break;
             }
         }
 
@@ -448,6 +466,7 @@ std::vector<double> detectOutbreakBoundaries(const std::vector<Observation> &dat
         {
             // 2. Check for sustained increase in the NEXT 21 days
             // We want to see the MA rise significantly to confirm an outbreak
+            // Bounds already checked by loop condition (i < data.size() - 21)
             double future_ma = data[i + 21].movingAvg7Day;
 
             // Criteria:
@@ -460,8 +479,8 @@ std::vector<double> detectOutbreakBoundaries(const std::vector<Observation> &dat
                 boundaries.push_back(boundary_time);
                 last_boundary = boundary_time;
 
-                std::cout << "Detected outbreak start (7-day MA Valley) at Day " << boundary_time
-                          << " (" << data[i].dateStr << ") - MA: " << current_ma << " -> " << future_ma << std::endl;
+                cout << "Detected outbreak start (7-day MA Valley) at Day " << boundary_time
+                     << " (" << data[i].dateStr << ") - MA: " << current_ma << " -> " << future_ma << endl;
 
                 // Skip forward to avoid detecting the same valley multiple times
                 i += 20;
@@ -475,17 +494,17 @@ std::vector<double> detectOutbreakBoundaries(const std::vector<Observation> &dat
 int main()
 {
     // 1. Load observed data
-    std::string dataFile = "observed_data.csv";
-    std::vector<Observation> observedData = readObservations(dataFile);
+    string dataFile = "observed_data.csv";
+    vector<Observation> observedData = readObservations(dataFile);
 
     if (observedData.empty())
     {
-        std::cerr << "Error: No data loaded from " << dataFile << std::endl;
+        cerr << "Error: No data loaded from " << dataFile << endl;
         return 1;
     }
 
-    std::cout << "Loaded " << observedData.size() << " data points." << std::endl;
-    std::cout << "Start Date: " << observedData[0].dateStr << std::endl;
+    cout << "Loaded " << observedData.size() << " data points." << endl;
+    cout << "Start Date: " << observedData[0].dateStr << endl;
 
     // Calculate 7-Day Moving Average for Observed Data
     for (size_t i = 0; i < observedData.size(); ++i)
@@ -508,56 +527,58 @@ int main()
     // 2. Setup fixed parameters
     Parameters params;
 
-    // Human Parameters
-    params.mu_h = 1.0 / (70.0 * 365.0);      // Natural death rate (approx 70 year life expectancy)
+    // Human Parameters (incubation/infectious periods aligned with Symmetry 2022 Table 1 and Vic Health mpox notes)
+    params.mu_h = 1.0 / (70.0 * 365.0);      // Natural death rate (70 year life expectancy)
     params.theta_h = params.mu_h * 100000.0; // Recruitment balances death for N=100k
-    params.delta_h = 0.001;                  // Low disease induced death
+    params.delta_h = 0.0;                    // Disease-induced death (CFR ~0% for 2022 clade II outbreak)
 
-    params.alpha1 = 1.0 / 10.0; // E_h -> I_h (Incubation ~10 days)
-    params.alpha2 = 1.0 / 12.0; // E_h -> Q_h (Detection delay slightly longer)
+    params.alpha1 = 1.0 / 8.0;  // E_h -> I_h (Incubation period: 8 days, median for mpox)
+    params.alpha2 = 1.0 / 10.0; // E_h -> Q_h (Detection/isolation delay: ~10 days)
 
-    params.nu = 1.0 / 21.0;  // I_h -> R_h (Recovery ~21 days)
-    params.tau = 1.0 / 14.0; // Q_h -> R_h (Recovery from quarantine)
-    params.phi = 0.01;       // Q_h -> S_h (Small leak/misdiagnosis)
+    params.nu = 1.0 / 21.0;  // I_h -> R_h (Infectious period: ~21 days for mpox)
+    params.tau = 1.0 / 14.0; // Q_h -> R_h (Recovery from isolation: ~14 days)
+    params.phi = 0.001;      // Q_h -> S_h (Very small isolation escape/reinfection rate)
 
-    params.beta1 = 0.001; // Low Human-Rodent contact
+    params.beta1 = 0.0001; // Human-Rodent spillover contact rate (very low, minimal role)
 
-    // Rodent Parameters
-    params.mu_r = 1.0 / (2.0 * 365.0); // Rodent life ~2 years
-    params.theta_r = params.mu_r * 10000.0;
-    params.delta_r = 0.05;
-    params.alpha3 = 1.0 / 7.0;
-    params.beta3 = 0.2; // Rodent-Rodent transmission
+    // Rodent Parameters (lifespan and transmission adapted from Symmetry 2022 reservoir settings)
+    params.mu_r = 1.0 / (1.5 * 365.0);      // Rodent life ~1.5 years (small rodents)
+    params.theta_r = params.mu_r * 10000.0; // Maintains stable rodent population
+    params.delta_r = 0.03;                  // Disease-induced rodent death rate
+    params.alpha3 = 1.0 / 7.0;              // Rodent incubation ~7 days
+    params.beta3 = 0.01;                    // Rodent-rodent transmission (low endemic maintenance)
 
     // Multiple Outbreak Settings
     params.importation_rate = 0.0; // Set to > 0 to allow constant external seeding
+    params.beta2 = 0.05;           // Initialize default beta2 value
 
     // 3. Sequential Optimization for each Year
-    std::cout << "Optimizing Beta2 separately for each detected outbreak period..." << std::endl;
+    cout << "Optimizing Beta2 separately for each detected outbreak period..." << endl;
 
     // Define time boundaries based on detected outbreaks
-    std::vector<double> boundaries = detectOutbreakBoundaries(observedData);
+    vector<double> boundaries = detectOutbreakBoundaries(observedData);
     boundaries.push_back(observedData.back().time + 1.0); // End of data
 
-    std::map<double, double> optimized_schedule;
+    map<double, double> optimized_schedule;
 
     // Initial State
     State currentState;
     currentState.t = 0;
-    double N_h_initial = 10000.0; // Reduced effective population size for better fit
-    currentState.I_h = observedData[0].infectious;
-    currentState.E_h = 0.0;
+    double N_h_initial = 10000.0;                        // Effective susceptible population in contact network
+    currentState.I_h = observedData[0].infectious * 8.0; // Underreporting factor ~8x
+    // Initialize with exposed population reflecting early transmission chains
+    currentState.E_h = currentState.I_h * 12.0; // Large exposed cohort from early undetected spread
     currentState.Q_h = 0.0;
     currentState.R_h = 0.0;
-    currentState.S_h = N_h_initial - currentState.I_h;
+    currentState.S_h = N_h_initial - currentState.I_h - currentState.E_h;
 
-    // Rodent Initial
+    // Rodent Initial (reservoir population)
     double N_r_initial = 10000.0;
-    currentState.I_r = 10.0;
-    currentState.E_r = 0.0;
-    currentState.S_r = N_r_initial - currentState.I_r;
+    currentState.I_r = 10.0; // Endemic rodent infections (minimal stable reservoir)
+    currentState.E_r = 5.0;  // Exposed rodents
+    currentState.S_r = N_r_initial - currentState.I_r - currentState.E_r;
 
-    std::vector<State> fullHistory;
+    vector<State> fullHistory;
 
     for (size_t i = 0; i < boundaries.size() - 1; ++i)
     {
@@ -565,47 +586,51 @@ int main()
         double t_end = boundaries[i + 1];
 
         // Re-initialize I_h based on observed data at t_start to prevent error propagation
-        // Find observed data point closest to t_start
-        auto obsIt = std::lower_bound(observedData.begin(), observedData.end(), t_start,
-                                      [](const Observation &obs, double t)
-                                      { return obs.time < t; });
-
-        if (obsIt != observedData.end() && std::abs(obsIt->time - t_start) < 5.0)
+        // SKIP reset for the very first period (i=0) as initial state is already properly set
+        if (i > 0)
         {
-            // Reset infectious count to observed data (Data Assimilation)
-            // Use Moving Average to avoid outliers/noise at the boundary
-            double observed_I = obsIt->movingAvg7Day;
-            if (observed_I <= 0.1)
-                observed_I = obsIt->infectious; // Fallback if MA is not ready or 0
+            // Find observed data point closest to t_start
+            auto obsIt = lower_bound(observedData.begin(), observedData.end(), t_start,
+                                     [](const Observation &obs, double t)
+                                     { return obs.time < t; });
 
-            // Ensure a minimum seed to allow Beta2 to work if cases are low
-            if (observed_I < 1.0)
-                observed_I = 1.0;
+            if (obsIt != observedData.end() && fabs(obsIt->time - t_start) < 5.0)
+            {
+                // Reset infectious count to observed data (Data Assimilation)
+                // Use Moving Average to avoid outliers/noise at the boundary
+                double observed_I = obsIt->movingAvg7Day;
+                if (observed_I <= 0.1)
+                    observed_I = obsIt->infectious; // Fallback if MA is not ready or 0
 
-            // FULL STATE RESET for independent yearly approximation
-            currentState.I_h = observed_I;
-            currentState.E_h = observed_I; // Seed exposed as well
-            currentState.Q_h = 0.0;
-            currentState.R_h = 0.0;
-            currentState.S_h = N_h_initial - (currentState.I_h + currentState.E_h);
+                // Ensure a minimum seed to allow Beta2 to work if cases are low
+                if (observed_I < 1.0)
+                    observed_I = 1.0;
 
-            // Reset Rodents
-            currentState.I_r = 10.0;
-            currentState.E_r = 0.0;
-            currentState.S_r = N_r_initial - currentState.I_r;
+                // FULL STATE RESET for independent yearly approximation
+                currentState.I_h = observed_I;
+                currentState.E_h = observed_I * 2.0; // Seed exposed population (2x infectious)
+                currentState.Q_h = 0.0;
+                currentState.R_h = 0.0;
+                currentState.S_h = N_h_initial - (currentState.I_h + currentState.E_h);
+
+                // Reset Rodents with higher background infection
+                currentState.I_r = 100.0;
+                currentState.E_r = 50.0;
+                currentState.S_r = N_r_initial - currentState.I_r - currentState.E_r;
+            }
         }
 
-        std::cout << "Optimizing Period " << i << " (" << t_start << " to " << t_end << ")" << std::endl;
-        std::cout << "  Initial I_h (from Data/MA): " << currentState.I_h << std::endl;
+        cout << "Optimizing Period " << i << " (" << t_start << " to " << t_end << ")" << endl;
+        cout << "  Initial I_h (from Data/MA): " << currentState.I_h << endl;
 
         double best_b = 0.0;
-        double min_sse_period = std::numeric_limits<double>::max();
+        double min_sse_period = numeric_limits<double>::max();
         State bestEndState = currentState;
 
         // Iterative Grid Search for high precision (Coarse-to-Fine)
         double current_step = 0.1;
         double search_start = 0.0;
-        double search_end = 3.0;
+        double search_end = 5.0; // Increased upper bound to allow higher transmission rates
 
         // Passes: 0.1 down to 1e-7
         for (int pass = 0; pass < 8; ++pass)
@@ -627,9 +652,9 @@ int main()
                 {
                     if (obs.time >= t_start && obs.time < t_end)
                     {
-                        auto it = std::lower_bound(predictions.begin(), predictions.end(), obs.time,
-                                                   [](const State &s, double t)
-                                                   { return s.t < t; });
+                        auto it = lower_bound(predictions.begin(), predictions.end(), obs.time,
+                                              [](const State &s, double t)
+                                              { return s.t < t; });
                         if (it != predictions.end())
                         {
                             double total_infectious_h = it->I_h + it->Q_h;
@@ -648,14 +673,14 @@ int main()
                 }
             }
             // Refine search range around the best found so far
-            search_start = std::max(0.0, best_b - current_step);
+            search_start = max(0.0, best_b - current_step);
             search_end = best_b + current_step;
             current_step /= 10.0;
         }
-        if (min_sse_period == std::numeric_limits<double>::max())
+        if (min_sse_period == numeric_limits<double>::max())
         {
             best_b = (i > 0) ? optimized_schedule[boundaries[i - 1]] : 0.05;
-            std::cout << "Period " << t_start << " to " << t_end << ": No data. Keeping Beta: " << best_b << std::endl;
+            cout << "Period " << t_start << " to " << t_end << ": No data. Keeping Beta: " << best_b << endl;
             // Run simulation with default beta to get end state
             params.beta_schedule[t_start] = best_b;
             auto res = simulatePeriod(params, currentState, t_end, 0.1);
@@ -663,7 +688,7 @@ int main()
         }
         else
         {
-            std::cout << "Period " << t_start << " to " << t_end << ": Best Beta: " << std::fixed << std::setprecision(7) << best_b << " (SSE: " << min_sse_period << ")" << std::endl;
+            cout << "Period " << t_start << " to " << t_end << ": Best Beta: " << fixed << setprecision(7) << best_b << " (SSE: " << min_sse_period << ")" << endl;
         }
 
         optimized_schedule[t_start] = best_b;
@@ -686,11 +711,11 @@ int main()
         currentState = bestEndState;
     }
 
-    std::cout << "Optimization Complete." << std::endl;
+    cout << "Optimization Complete." << endl;
     params.beta_schedule = optimized_schedule;
 
     // 5. Process Daily Results
-    std::vector<DailyPrediction> dailyResults;
+    vector<DailyPrediction> dailyResults;
     auto rawResults = fullHistory; // Use the stitched history
 
     double final_t_max = rawResults.back().t;
@@ -699,9 +724,9 @@ int main()
     for (int day = 0; day <= (int)final_t_max; ++day)
     {
         // Find state at t = day
-        auto it = std::lower_bound(rawResults.begin(), rawResults.end(), (double)day,
-                                   [](const State &s, double t)
-                                   { return s.t < t; });
+        auto it = lower_bound(rawResults.begin(), rawResults.end(), (double)day,
+                              [](const State &s, double t)
+                              { return s.t < t; });
 
         if (it != rawResults.end())
         {
@@ -714,14 +739,14 @@ int main()
     }
 
     // Save final prediction
-    std::ofstream outFile("monkeypox_fitted_prediction.csv");
+    ofstream outFile("monkeypox_fitted_prediction.csv");
     outFile << "Date,Time_Days,Infectious_Predicted\n";
     for (const auto &p : dailyResults)
     {
         outFile << p.dateStr << "," << p.time << "," << p.infectious << "\n";
     }
     outFile.close();
-    std::cout << "Fitted model saved to 'monkeypox_fitted_prediction.csv'" << std::endl;
+    cout << "Fitted model saved to 'monkeypox_fitted_prediction.csv'" << endl;
 
     // 6. Generate Visualization
     generateHTMLReport(observedData, dailyResults);
