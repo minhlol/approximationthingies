@@ -189,9 +189,39 @@
                         Total_Infected_h: parseFloat(values[9]),
                         observed: parseFloat(values[10]) || 0,
                         ma7: parseFloat(values[11]) || 0,
-                        ma21: parseFloat(values[12]) || 0
+                        ma21: parseFloat(values[12]) || 0,
+                        forecast_90d: parseFloat(values[13]) || 0
                     };
                 });
+                
+                // Load forecast data
+                const forecastResponse = await fetch('monkeypox_prediction.csv');
+                if (forecastResponse.ok) {
+                    const forecastText = await forecastResponse.text();
+                    const forecastLines = forecastText.trim().split('\n');
+                    const forecastData = forecastLines.slice(1).map(line => {
+                        const values = line.split(',');
+                        return {
+                            date: values[0],
+                            S_h: parseFloat(values[1]),
+                            E_h: parseFloat(values[2]),
+                            I_h: parseFloat(values[3]),
+                            Q_h: parseFloat(values[4]),
+                            R_h: parseFloat(values[5]),
+                            S_r: parseFloat(values[6]),
+                            E_r: parseFloat(values[7]),
+                            I_r: parseFloat(values[8]),
+                            Total_Infected_h: parseFloat(values[9]),
+                            observed: 0,
+                            ma7: 0,
+                            ma21: 0,
+                            isForecast: true
+                        };
+                    });
+                    // Append forecast to main data
+                    allData = allData.concat(forecastData);
+                    console.log('Forecast loaded, total records:', allData.length);
+                }
                 
                 console.log('Data parsed successfully, records:', allData.length);
                 initializeChart();
@@ -300,6 +330,11 @@
             const view = document.getElementById('viewSelect').value;
             
             if (view === 'comparison') {
+                // Separate historical and forecast data
+                const historicalData = allData.filter(d => !d.isForecast);
+                const forecastData = allData.filter(d => d.isForecast);
+                const lastHistorical = historicalData[historicalData.length - 1];
+                
                 myChart.data.datasets = [
                     {
                         label: 'Observed Cases',
@@ -313,7 +348,7 @@
                     },
                     {
                         label: '7-Day Moving Average',
-                        data: allData.map(d => d.ma7),
+                        data: historicalData.map(d => d.ma7),
                         borderColor: '#fd7e14',
                         backgroundColor: 'transparent',
                         pointRadius: 0,
@@ -322,7 +357,7 @@
                     },
                     {
                         label: '21-Day Moving Average',
-                        data: allData.map(d => d.ma21),
+                        data: historicalData.map(d => d.ma21),
                         borderColor: '#ffc107',
                         backgroundColor: 'rgba(255, 193, 7, 0.1)',
                         fill: true,
@@ -331,13 +366,25 @@
                         tension: 0.4
                     },
                     {
-                        label: 'Model Prediction (I_h + Q_h)',
-                        data: allData.map(d => d.Total_Infected_h),
+                        label: 'Model Prediction',
+                        data: historicalData.map(d => d.Total_Infected_h),
                         borderColor: '#007bff',
                         backgroundColor: 'rgba(0, 123, 255, 0.1)',
                         fill: true,
                         pointRadius: 0,
                         borderWidth: 3,
+                        tension: 0.4
+                    },
+                    {
+                        label: '90-Day Forecast',
+                        data: [...historicalData.map(d => d.forecast_90d || null), 
+                               ...forecastData.map(d => d.Total_Infected_h)],
+                        borderColor: '#6f42c1',
+                        backgroundColor: 'rgba(111, 66, 193, 0.1)',
+                        borderDash: [10, 5],
+                        fill: false,
+                        pointRadius: 0,
+                        borderWidth: 2,
                         tension: 0.4
                     }
                 ];
