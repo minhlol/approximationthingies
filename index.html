@@ -158,7 +158,14 @@
         // Load and parse CSV data
         async function loadData() {
             try {
-                const response = await fetch('monkeypox_fitted_prediction.csv');
+                // Use relative path that works both locally and on GitHub Pages
+                const basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+                const csvPath = basePath + 'monkeypox_fitted_prediction.csv';
+                
+                const response = await fetch(csvPath);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const csvText = await response.text();
                 const lines = csvText.trim().split('\n');
                 
@@ -189,7 +196,9 @@
             } catch (error) {
                 console.error('Error loading data:', error);
                 document.querySelector('.chart-container').innerHTML = 
-                    '<div class="loading">Error loading data. Please ensure CSV files are in the same directory.</div>';
+                    `<div class="loading">Error loading data: ${error.message}<br><br>
+                    Make sure monkeypox_fitted_prediction.csv is in the same directory as index.html.<br>
+                    If on GitHub Pages, ensure the CSV file is committed to the repository.</div>`;
             }
         }
         

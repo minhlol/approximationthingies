@@ -33,19 +33,41 @@ All commands assume Windows PowerShell in the workspace root:
 
 ```powershell
 cd d:\approximationthingies
-if ($?) { g++ monkeypox_seir.cpp -std=c++17 -O2 -o monkeypox_seir }
+if ($?) { g++ monkeypox_seir.cpp -std=c++20 -O2 -o monkeypox_seir }
 if ($?) { .\monkeypox_seir }
 ```
 
 Execution steps:
 
-1. Compile with a modern C++ compiler (tested with `g++`/MinGW).
+1. Compile with a modern C++ compiler (tested with `g++`/MinGW, C++20).
 2. Run the generated `monkeypox_seir.exe` to:
-   - Load observed data and compute a 7-day moving average.
-   - Detect outbreak boundaries via moving-average valleys.
-   - Grid-search `beta2` within each boundary window to minimize SSE.
-   - Produce fitted CSV outputs and `index.html` visualization.
-3. Open `index.html` in any browser to inspect forecasting results (use the year dropdown to focus on specific periods).
+   - Load observed data and compute 7-day and 21-day moving averages.
+   - Detect outbreak periods where 21-day MA exceeds threshold.
+   - Generate fitted CSV outputs with moving averages.
+3. Open `index.html` in any browser to inspect results (use controls to filter by year, change view, and toggle scale).
+
+## GitHub Pages Deployment
+
+To deploy the visualization on GitHub Pages:
+
+1. **Commit the required files** to your repository:
+   ```bash
+   git add index.html monkeypox_fitted_prediction.csv observed_data.csv
+   git commit -m "Add SEIR visualization"
+   git push origin main
+   ```
+
+2. **Enable GitHub Pages**:
+   - Go to your repository **Settings** → **Pages**
+   - Under "Source", select **Deploy from a branch**
+   - Select branch: **main** and folder: **/ (root)**
+   - Click **Save**
+
+3. **Access your visualization**:
+   - Your site will be available at: `https://[username].github.io/[repository-name]/`
+   - Example: `https://yourusername.github.io/approximationthingies/`
+
+4. **Note**: Make sure all CSV files are committed to the repository. GitHub Pages serves static files only, so the visualization loads data via fetch() from the same directory.
 
 ## Output Artifacts
 
