@@ -1,21 +1,42 @@
-# Monkeypox SEIR Modeling Sandbox
+# Monkeypox Two-Population SEIQR-SEIR Model
 
-This workspace contains a coupled human-rodent SEIR-style model tuned to the 2022-2025 mpox (monkeypox) outbreaks. The C++ driver (`monkeypox_seir.cpp`) ingests observed case counts, optimizes the human-to-human transmission rate over detected outbreak windows, and exports both CSV summaries and a browser-based visualization.
+This workspace contains a coupled human-rodent compartmental model for the 2022-2025 mpox (monkeypox) outbreaks. The C++ implementation uses a **three-stage hybrid approach**: (1) moving average smoothing, (2) human compartment fitting, and (3) rodent SEIR dynamics refinement. It generates both CSV outputs and an interactive browser-based visualization with 21-day rolling forecasts.
 
 ## Repository Layout
 
-- `monkeypox_seir.cpp` — core simulation, outbreak detection, and reporting logic.
-- `observed_data.csv` — historical mpox case counts (daily). The code expects `Date,Infectious` columns in `MM-DD-YYYY` order.
-- `monkeypox_fitted_prediction.csv` — generated each run with fitted daily totals (`Date,Time_Days,Infectious_Predicted`).
-- `monkeypox_prediction.csv` — optional placeholder for scenario runs.
-- `index.html` — Chart.js dashboard built by `generateHTMLReport` for side-by-side observed vs. simulated curves.
+- `monkeypox_seir.cpp` — core simulation with three-stage modeling, outbreak detection, and 21-day rolling forecasts
+- `observed_data.csv` — historical mpox case counts (daily), expects `Date,Infectious` columns in `MM-DD-YYYY` format
+- `monkeypox_fitted_prediction.csv` — generated output with 14 columns including S_h, E_h, I_h, Q_h, R_h, S_r, E_r, I_r, moving averages, and 21-day forecasts
+- `monkeypox_prediction.csv` — 21-day future forecast beyond last observed date
+- `index.html` — Interactive Chart.js dashboard with year filtering, multiple views, and forecast visualization
 
 ## Model Overview
 
-- **Compartments (humans):** Susceptible, Exposed, Infectious (undetected), Quarantined/Detected, Recovered.
-- **Compartments (rodents):** Susceptible, Exposed, Infectious reservoir.
-- **Transmission:** Human-human (`beta2`) optimized per outbreak, rodent-human spillover (`beta1`) fixed, rodent self-transmission (`beta3`).
-- **Control structure:** `beta_schedule` map lets the optimizer assign a distinct `beta2` at every detected outbreak boundary, enabling sequential fitting without re-running the whole timeline.
+### Compartmental Structure
+
+**Human compartments (SEIQR model):**
+- S_h: Susceptible
+- E_h: Exposed (incubating)
+- I_h: Infectious (undetected/community transmission)
+- Q_h: Quarantined/Detected (isolated cases)
+- R_h: Recovered (immune)
+
+**Rodent compartments (SEIR model):**
+- S_r: Susceptible rodents
+- E_r: Exposed rodents
+- I_r: Infectious rodents (reservoir)
+
+**Transmission dynamics:**
+- Zoonotic spillover: β₁·I_r (rodent-to-human)
+- Human-to-human: β₂·I_h
+- Rodent intra-species: β₃·I_r
+- Dual exposure pathways: E → I (undetected) and E → Q (detected/quarantined)
+
+### Three-Stage Approach
+
+1. **Stage 1 - Moving Average Smoothing:** Exponential smoothing (α=0.25) of 21-day moving average to create stable epidemic trajectory
+2. **Stage 2 - Human Compartment Construction:** Build S_h, E_h, I_h, Q_h, R_h from smoothed prediction using compartmental flow equations
+3. **Stage 3 - Rodent SEIR Refinement:** Integrate full rodent dynamics with population homeostasis (immigration) and endemic maintenance (replenishment when I_r drops below 50% target)
 
 ### Mathematical References
 
@@ -69,17 +90,55 @@ To deploy the visualization on GitHub Pages:
 
 4. **Note**: Make sure all CSV files are committed to the repository. GitHub Pages serves static files only, so the visualization loads data via fetch() from the same directory.
 
+## Forecasting System
+
+### 21-Day Rolling Forecasts
+
+The model generates **trend-aware 21-day forecasts** for every historical point:
+
+- **Growth/Stable Phases** (trend > -2 cases/day): Uses 90% model trajectory, capturing epidemic momentum
+- **Rapid Decline** (trend < -2 cases/day): Uses full SEIQR-SEIR dynamics with homeostasis
+- **Conditional Dynamics**: When I_r ≈ 0, switches to simplified human-only model (no zoonotic spillover)
+
+Forecasts are displayed 21 days ahead of their generation point, allowing comparison with actual observations.
+
+### Key Features
+
+- **Date-aware shifting**: Forecast values displayed at their predicted date, not generation date
+- **Year filtering**: Properly handles cross-year forecasts (e.g., late 2022 forecasts into early 2023)
+- **Epidemic phase detection**: Automatically adapts to growth vs. decline dynamics
+
 ## Output Artifacts
 
-- `monkeypox_fitted_prediction.csv`: deterministic daily totals from the stitched simulations.
-- `index.html`: interactive chart with observed counts, predicted trajectory, and moving average.
-- Console logs: report outbreak detections, optimal `beta2` per period, and diagnostics.
+- `monkeypox_fitted_prediction.csv`: 14 columns including all compartments, moving averages (7-day, 21-day), and 21-day rolling forecasts
+- `monkeypox_prediction.csv`: 21-day future forecast extending beyond last observed date
+- `index.html`: Interactive visualization with:
+  - Three view modes: Comparison (observed vs model vs forecast), Human compartments, Rodent compartments
+  - Year filtering (2022-2025)
+  - Linear/logarithmic scale toggle
+  - Summary statistics cards
+- Console logs: Outbreak detection, RMSE per period, rodent dynamics, forecast generation progress
+
+## Model Parameters
+
+Key epidemiological parameters (daily rates):
+- **Human transmission**: β₂ = 0.00012 (fitted to outbreak dynamics)
+- **Zoonotic spillover**: β₁ = 0.00008
+- **Incubation rates**: α₁ = 0.143 (E→I), α₂ = 0.067 (E→Q)
+- **Recovery/isolation**: ν = 0.067 (I→R), τ = 0.143 (Q→R)
+- **Rodent dynamics**: β₃ = 0.0003, α₃ = 0.20, target I_r = 1.5% of population
+
+Populations:
+- N_h = 1,000,000 (human)
+- N_r = 100,000 (rodent reservoir)
 
 ## Extending the Model
 
-- Adjust `params.importation_rate` or the rodent reservoir state to explore recurrent seeding.
-- Modify `detectOutbreakBoundaries` criteria or provide manual `beta_schedule` entries for scenario testing.
-- Replace the coarse-to-fine grid search with a numerical optimizer if gradient-free accuracy becomes limiting.
+- **Modify forecast horizon**: Change `forecast_days` from 21 to other values (7, 14, 30, 90 days)
+- **Adjust rodent maintenance**: Modify `target_I_r_forecast` and replenishment rates to explore endemic persistence
+- **Parameter sensitivity**: Test different β values to model intervention scenarios
+- **Outbreak detection**: Adjust MA21 threshold (currently 5 cases) for different epidemic definitions
+- **Smoothing factors**: Change exponential smoothing α (currently 0.25) for more/less responsiveness
 
 ## References
 
