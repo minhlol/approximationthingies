@@ -23,7 +23,7 @@ Model structure and baseline parameter magnitudes follow the extended SEIR frame
 
 ## Data Preparation
 
-1. Place observed daily counts in `observed_data.csv` sorted by date.
+1. Place observed daily counts in `observed_data.csv` sorted by date (CDC mpox surveillance feed: https://www.cdc.gov/monkeypox/data-research/cases/index.html).
 2. Ensure dates use `MM-DD-YYYY` strings; the parser auto-computes day offsets from the first entry.
 3. (Optional) Provide custom prediction horizons in `monkeypox_prediction.csv` if you plan to extend the tool beyond fitting.
 
@@ -63,5 +63,6 @@ Execution steps:
 
 1. Md. Rasel, M. S. H. Hawlader, et al., "A Mathematical Model for Monkeypox Transmission," *Symmetry* 14(12):2545, 2022. https://www.mdpi.com/2073-8994/14/12/2545#symmetry-14-02545-t001
 2. Victoria Department of Health, "Mpox (monkeypox)," 2023 guidance. https://www.health.vic.gov.au/infectious-diseases/mpox-monkeypox
+3. Centers for Disease Control and Prevention, "Mpox (monkeypox) Data and Statistics." https://www.cdc.gov/monkeypox/data-research/cases/index.html
 
 These sources ground the compartment choices, time scales, and intervention assumptions documented in the code.
