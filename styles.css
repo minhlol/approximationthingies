@@ -255,6 +255,7 @@ select:hover, button:hover {
     .container {
         padding: 20px;
         border-radius: 10px;
+        overflow-x: hidden;
     }
     
     h1 {
@@ -288,14 +289,56 @@ select:hover, button:hover {
     
     .controls {
         gap: 15px;
+        flex-direction: column;
     }
     
     .chart-container {
-        height: 350px;
-        padding: 10px;
+        height: 450px;
+        padding: 15px 10px;
+        margin-bottom: 20px;
+    }
+    
+    .chart-container canvas {
+        max-width: 100%;
     }
     
     .stats {
         grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .stat-card {
+        padding: 20px;
+    }
+    
+    /* Math equation overflow fixes */
+    .architecture-section h4 {
+        font-size: 1em;
+    }
+    
+    .architecture-section > div {
+        overflow-x: auto;
+        max-width: 100%;
+    }
+    
+    .katex-display {
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 10px 0;
+        font-size: 0.9em !important;
+    }
+    
+    .katex {
+        font-size: 0.9em !important;
+    }
+    
+    .katex-html {
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+    
+    p {
+        overflow-wrap: break-word;
+        word-wrap: break-word;
     }
 }

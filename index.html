@@ -725,6 +725,7 @@ graph TB
         
         function initializeChart() {
             const ctx = document.getElementById('seirChart').getContext('2d');
+            const isMobile = window.innerWidth <= 768;
             
             myChart = new Chart(ctx, {
                 type: 'line',
@@ -739,22 +740,35 @@ graph TB
                         mode: 'index',
                         intersect: false,
                     },
+                    elements: {
+                        line: {
+                            borderWidth: isMobile ? 1 : 2,
+                            tension: 0.4
+                        },
+                        point: {
+                            radius: isMobile ? 0 : 1,
+                            hitRadius: isMobile ? 5 : 4,
+                            hoverRadius: isMobile ? 3 : 4
+                        }
+                    },
                     plugins: {
                         legend: {
                             position: 'top',
                             labels: {
                                 font: {
-                                    size: 13,
+                                    size: isMobile ? 10 : 13,
                                     weight: 'bold'
                                 },
-                                padding: 15
+                                padding: isMobile ? 8 : 15,
+                                boxWidth: isMobile ? 30 : 40,
+                                usePointStyle: isMobile
                             }
                         },
                         tooltip: {
                             backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                            padding: 12,
-                            titleFont: { size: 14 },
-                            bodyFont: { size: 13 }
+                            padding: isMobile ? 8 : 12,
+                            titleFont: { size: isMobile ? 11 : 14 },
+                            bodyFont: { size: isMobile ? 10 : 13 }
                         }
                     },
                     scales: {
@@ -762,18 +776,22 @@ graph TB
                             title: {
                                 display: true,
                                 text: 'Date',
-                                font: { size: 14, weight: 'bold' }
+                                font: { size: isMobile ? 11 : 14, weight: 'bold' }
                             },
                             ticks: {
                                 maxRotation: 45,
-                                minRotation: 45
+                                minRotation: 45,
+                                font: { size: isMobile ? 9 : 11 }
                             }
                         },
                         y: {
                             title: {
                                 display: true,
                                 text: 'Cases / Population',
-                                font: { size: 14, weight: 'bold' }
+                                font: { size: isMobile ? 11 : 14, weight: 'bold' }
+                            },
+                            ticks: {
+                                font: { size: isMobile ? 9 : 11 }
                             },
                             beginAtZero: true
                         }
