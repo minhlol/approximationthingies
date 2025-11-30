@@ -442,8 +442,10 @@ graph TB
                         // Calculate fit-to-screen scale
                         let initialScale = 1;
                         setTimeout(() => {
-                            const containerWidth = container.clientWidth - 60; // Account for padding
-                            const containerHeight = container.clientHeight - 60;
+                            const isMobile = window.innerWidth <= 768;
+                            const padding = isMobile ? 30 : 60;
+                            const containerWidth = container.clientWidth - padding;
+                            const containerHeight = container.clientHeight - padding;
                             const svgWidth = svg.scrollWidth || svg.clientWidth;
                             const svgHeight = svg.scrollHeight || svg.clientHeight;
                             
@@ -451,8 +453,14 @@ graph TB
                                 const scaleX = containerWidth / svgWidth;
                                 const scaleY = containerHeight / svgHeight;
                                 initialScale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+                                
+                                // On mobile, ensure minimum scale for readability
+                                if (isMobile && initialScale < 0.3) {
+                                    initialScale = 0.3;
+                                }
+                                
                                 scale = initialScale;
-                                updateZoom(scale);
+                                updateZoom(scale, false);
                                 
                                 // Center the diagram after initial zoom
                                 setTimeout(() => {
