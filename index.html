@@ -108,46 +108,55 @@
             <div class="mermaid">
 graph TB
     Start(["🚀 Start"])
+    InputTitle["📥 Data Input"]
+    ModelTitle["🧬 Three-Stage Modeling"]
+    ForecastTitle["🔮 Forecasting"]
+    OutputTitle["💾 Output"]
     
-    subgraph Input[" 📥 Data Input "]
+    subgraph Input[" "]
         direction TB
-        A1["Load Data<br/>observed_data.csv"]
+        A1["Load Data<br/>CSV"]
         A2["Moving Averages<br/>MA7 & MA21"]
-        A3["Outbreak Detection<br/>MA21 > 5"]
+        A3["Outbreak Detection"]
         
         A1 --> A2
         A2 --> A3
     end
     
-    subgraph Model[" 🧬 Three-Stage Modeling "]
+    subgraph Model[" "]
         direction TB
-        B1["📈 Stage 1<br/>Exponential Smoothing"]
-        B2["👥 Stage 2<br/>Human SEIQR"]
-        B3["🐀 Stage 3<br/>Rodent SEIR"]
-        B4["📊 Analysis<br/>RMSE & Validation"]
+        B1["📈 Stage 1<br/>Smoothing"]
+        B2["👥 Stage 2<br/>SEIQR"]
+        B3["🐀 Stage 3<br/>SEIR"]
+        B4["📊 Validation"]
         
         B1 --> B2
         B2 --> B3
         B3 --> B4
     end
     
-    subgraph Forecast[" 🔮 Forecasting "]
+    subgraph Forecast[" "]
         direction TB
-        C1["Generate Predictions<br/>21-day windows"]
-        C2["Validation Check<br/>Trend analysis"]
+        C1["Generate<br/>21-day"]
+        C2["Trend Check"]
         
         C1 --> C2
     end
     
-    subgraph Output[" 💾 Output "]
+    subgraph Output[" "]
         direction TB
-        D1["fitted_prediction.csv"]
+        D1["fitted.csv"]
         D2["prediction.csv"]
         D3["index.html"]
         
         D1 --> D3
         D2 --> D3
     end
+    
+    InputTitle -.-> Input
+    ModelTitle -.-> Model
+    ForecastTitle -.-> Forecast
+    OutputTitle -.-> Output
     
     Start --> Input
     Input --> Model
@@ -157,6 +166,10 @@ graph TB
     
     C2 -.->|Refine| B3
     
+    style InputTitle fill:#1976d2,stroke:#1976d2,color:#fff,stroke-width:2px
+    style ModelTitle fill:#f57c00,stroke:#f57c00,color:#fff,stroke-width:2px
+    style ForecastTitle fill:#7b1fa2,stroke:#7b1fa2,color:#fff,stroke-width:2px
+    style OutputTitle fill:#388e3c,stroke:#388e3c,color:#fff,stroke-width:2px
     style Input fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
     style Model fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     style Forecast fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
@@ -171,31 +184,42 @@ graph TB
             </div>
             <div class="mermaid">
 graph LR
-    subgraph S1[" 📈 Stage 1: Data Smoothing "]
+    S1Title["📈 Stage 1: Data Smoothing"]
+    S2Title["👥 Stage 2: Human SEIQR"]
+    S3Title["🐀 Stage 3: Rodent SEIR"]
+    
+    subgraph S1[" "]
         direction TB
-        Raw["📊 Raw Cases<br/>Daily observations"]
-        Raw --> MA21["📉 MA21<br/>21-day window"]
-        MA21 --> Smooth["🎯 Exponential Smooth<br/>α=0.25 blend factor<br/>Reduces noise"]
+        Raw["📊 Raw Cases"]
+        Raw --> MA21["📉 MA21"]
+        MA21 --> Smooth["🎯 Smooth<br/><i>α</i>=0.25"]
     end
     
-    subgraph S2[" 👥 Stage 2: Human SEIQR "]
+    subgraph S2[" "]
         direction TB
-        SplitIQ["🔀 Infectious Split<br/>I_h + Q_h from prediction"]
-        SplitIQ --> FlowE["⬅️ Backtrack E_h<br/>Using α₁ and α₂ rates"]
-        FlowE --> CalcR["➡️ Accumulate R_h<br/>Recovery ν and τ rates"]
-        CalcR --> CalcS["🔢 Derive S_h<br/>Closure: N_h - E - I - Q - R"]
+        SplitIQ["🔀 Split<br/><i>I<sub>h</sub></i>+<i>Q<sub>h</sub></i>"]
+        SplitIQ --> FlowE["⬅️ Backtrack<br/><i>E<sub>h</sub></i>"]
+        FlowE --> CalcR["➡️ Accumulate<br/><i>R<sub>h</sub></i>"]
+        CalcR --> CalcS["🔢 Derive<br/><i>S<sub>h</sub></i>"]
     end
     
-    subgraph S3[" 🐀 Stage 3: Rodent SEIR "]
+    subgraph S3[" "]
         direction TB
-        Init["🎲 Initialize<br/>S_r, E_r, I_r states"]
-        Init --> RK4["⚙️ RK4 Integration<br/>10 steps per day<br/>Cross-species coupling"]
-        RK4 --> Maintain["♻️ Homeostasis<br/>Endemic replenishment<br/>Target I_r = 1.5%"]
+        Init["🎲 Initialize<br/>States"]
+        Init --> RK4["⚙️ RK4<br/>Integration"]
+        RK4 --> Maintain["♻️ Homeostasis<br/><i>I<sub>r</sub></i>=1.5%"]
     end
+    
+    S1Title -.-> S1
+    S2Title -.-> S2
+    S3Title -.-> S3
     
     S1 --> S2
     S2 --> S3
     
+    style S1Title fill:#0077cc,stroke:#0077cc,color:#fff,stroke-width:2px
+    style S2Title fill:#ff9900,stroke:#ff9900,color:#fff,stroke-width:2px
+    style S3Title fill:#cc0077,stroke:#cc0077,color:#fff,stroke-width:2px
     style S1 fill:#e1f5ff,stroke:#0077cc,stroke-width:2px
     style S2 fill:#fff4e1,stroke:#ff9900,stroke-width:2px
     style S3 fill:#ffe1f5,stroke:#cc0077,stroke-width:2px
@@ -207,37 +231,45 @@ graph LR
             </div>
             <div class="mermaid">
 graph TB
-    subgraph Human[" 👥 Human Population: SEIQR Model "]
+    HumanTitle["👥 Human Population: SEIQR Model"]
+    RodentTitle["🐀 Rodent Reservoir: SEIR Model"]
+    
+    subgraph Human[" "]
         direction LR
-        Sh["<b>S_h</b><br/>Susceptible<br/>Healthy population"]
-        Eh["<b>E_h</b><br/>Exposed<br/>Incubating virus"]
-        Ih["<b>I_h</b><br/>Infectious<br/>Undetected cases"]
-        Qh["<b>Q_h</b><br/>Quarantined<br/>Isolated cases"]
-        Rh["<b>R_h</b><br/>Recovered<br/>Immune"]
+        Sh["<i>S<sub>h</sub></i><br/>Susceptible"]
+        Eh["<i>E<sub>h</sub></i><br/>Exposed"]
+        Ih["<i>I<sub>h</sub></i><br/>Infectious"]
+        Qh["<i>Q<sub>h</sub></i><br/>Quarantined"]
+        Rh["<i>R<sub>h</sub></i><br/>Recovered"]
         
-        Sh -->|λ_h infection| Eh
-        Eh -->|α₁ progression| Ih
-        Eh -->|α₂ detection| Qh
-        Ih -->|ν recovery| Rh
-        Qh -->|τ recovery| Rh
-        Qh -->|φ release| Sh
+        Sh -->|<i>λ<sub>h</sub></i>| Eh
+        Eh -->|<i>α</i>₁| Ih
+        Eh -->|<i>α</i>₂| Qh
+        Ih -->|<i>ν</i>| Rh
+        Qh -->|<i>τ</i>| Rh
+        Qh -->|<i>φ</i>| Sh
     end
     
-    subgraph Rodent[" 🐀 Rodent Reservoir: SEIR Model "]
+    subgraph Rodent[" "]
         direction LR
-        Sr["<b>S_r</b><br/>Susceptible<br/>Healthy rodents"]
-        Er["<b>E_r</b><br/>Exposed<br/>Incubating"]
-        Ir["<b>I_r</b><br/>Infectious<br/>Viral shedding"]
+        Sr["<i>S<sub>r</sub></i><br/>Susceptible"]
+        Er["<i>E<sub>r</sub></i><br/>Exposed"]
+        Ir["<i>I<sub>r</sub></i><br/>Infectious"]
         
-        Sr -->|λ_r infection| Er
-        Er -->|α₃ progression| Ir
+        Sr -->|<i>λ<sub>r</sub></i>| Er
+        Er -->|<i>α</i>₃| Ir
         Sr -.->|Immigration| Sr
         Ir -.->|Replenishment| Ir
     end
     
-    Ir ==>|β₁ spillover<br/>Zoonotic transmission| Sh
-    Ih ==>|β₂ transmission<br/>Human-to-human| Sh
+    HumanTitle -.-> Human
+    RodentTitle -.-> Rodent
     
+    Ir ==>|<i>β</i>₁ Zoonotic| Sh
+    Ih ==>|<i>β</i>₂ H2H| Sh
+    
+    style HumanTitle fill:#1976d2,stroke:#1976d2,color:#fff,stroke-width:2px
+    style RodentTitle fill:#c2185b,stroke:#c2185b,color:#fff,stroke-width:2px
     style Human fill:#e3f2fd,stroke:#1976d2,stroke-width:3px
     style Rodent fill:#fce4ec,stroke:#c2185b,stroke-width:3px
     style Sh fill:#c8e6c9
@@ -259,15 +291,15 @@ graph TB
     Start(["🔁 For Each Day<br/>in Historical Data"])
     Start --> Trend{"📊 Analyze 7-Day Trend<br/>Growth Rate"}
     
-    Trend -->|"📈 Trend ≥ -2<br/>Growth/Stable"| PathA["🎯 Trajectory Method<br/>High confidence in model"]
-    Trend -->|"📉 Trend < -2<br/>Rapid Decline"| PathB["⚙️ Mechanistic Method<br/>SEIQR-SEIR dynamics"]
+    Trend -->|"📈 <i>Trend ≥ −2</i><br/>Growth/Stable"| PathA["🎯 Trajectory Method<br/>High confidence in model"]
+    Trend -->|"📉 <i>Trend < −2</i><br/>Rapid Decline"| PathB["⚙️ Mechanistic Method<br/>SEIQR-SEIR dynamics"]
     
     PathA --> Lookup["🔍 Lookup Future<br/>Model prediction at day+21"]
     Lookup --> Blend["🎨 Blend Values<br/>90% future + 10% current<br/>Smooth transition"]
     Blend --> Output
     
-    PathB --> RodentCheck{"🐀 Check Reservoir<br/>I_r > 0.01?"}
-    RodentCheck -->|"✅ Yes<br/>Active reservoir"| FullSim["🔬 Full Two-Population<br/>With β₁ spillover term<br/>Cross-species coupling"]
+    PathB --> RodentCheck{"🐀 Check Reservoir<br/><i>I<sub>r</sub></i> > 0.01?"}
+    RodentCheck -->|"✅ Yes<br/>Active reservoir"| FullSim["🔬 Full Two-Population<br/>With <i>β</i>₁ spillover term<br/>Cross-species coupling"]
     RodentCheck -->|"❌ No<br/>Negligible reservoir"| SimpleSim["👥 Human-Only Model<br/>No zoonotic forcing<br/>Epidemic fadeout"]
     
     FullSim --> Integrate["⚙️ RK4 Integration<br/>21 days × 10 steps/day<br/>Homeostasis maintained"]
@@ -294,44 +326,44 @@ graph TB
             </div>
             <div class="mermaid">
 graph TB
-    subgraph Pop[" 📊 Population Structure "]
-        NH["<b>N_h</b> = 1,000,000<br/>Human population<br/>Determines λ_h denominator"]
-        NR["<b>N_r</b> = 100,000<br/>Rodent population<br/>Determines λ_r denominator"]
-        Target["<b>Target I_r</b> = 1.5%<br/>Endemic equilibrium<br/>Replenishment threshold"]
+    subgraph Pop["📊 Population Structure"]
+        NH["<i>N<sub>h</sub></i>=1M<br/>Human pop"]
+        NR["<i>N<sub>r</sub></i>=100K<br/>Rodent pop"]
+        Target["<i>I<sub>r</sub></i>=1.5%<br/>Endemic"]
     end
     
-    subgraph Trans[" 🔀 Transmission Rates "]
-        B1["<b>β₁</b> = 0.00008/day<br/>🐀→👤 Spillover<br/>Drives zoonotic force"]
-        B2["<b>β₂</b> = 0.00012/day<br/>👤→👤 Human spread<br/>1.5× stronger than β₁"]
-        B3["<b>β₃</b> = 0.0003/day<br/>🐀→🐀 Rodent spread<br/>Maintains reservoir"]
+    subgraph Trans["🔀 Transmission Rates"]
+        B1["<i>β</i>₁=0.00008<br/>🐀→👤"]
+        B2["<i>β</i>₂=0.00012<br/>👤→👤"]
+        B3["<i>β</i>₃=0.0003<br/>🐀→🐀"]
     end
     
-    subgraph FOI[" ⚡ Force of Infection "]
-        LambdaH["<b>λ_h</b> = (β₁·I_r + β₂·I_h)·S_h/N_h<br/>Human infection pressure<br/>Two sources: rodent + human"]
-        LambdaR["<b>λ_r</b> = β₃·S_r·I_r/N_r<br/>Rodent infection pressure<br/>Frequency-dependent"]
+    subgraph FOI["⚡ Force of Infection"]
+        LambdaH["<i>λ<sub>h</sub></i><br/>Human force"]
+        LambdaR["<i>λ<sub>r</sub></i><br/>Rodent force"]
     end
     
-    subgraph Prog[" ⏱️ Disease Progression "]
-        A1["<b>α₁</b> = 0.143/day<br/>E_h → I_h pathway<br/>~7 days to symptoms"]
-        A2["<b>α₂</b> = 0.067/day<br/>E_h → Q_h pathway<br/>~15 days to detection"]
-        A3["<b>α₃</b> = 0.20/day<br/>E_r → I_r pathway<br/>~5 days (faster in rodents)"]
-        Branching["Branching: α₁ + α₂<br/>Detection fraction: α₂/(α₁+α₂)≈32%"]
+    subgraph Prog["⏱️ Disease Progression"]
+        A1["<i>α</i>₁=0.143<br/><i>E<sub>h</sub></i>→<i>I<sub>h</sub></i>"]
+        A2["<i>α</i>₂=0.067<br/><i>E<sub>h</sub></i>→<i>Q<sub>h</sub></i>"]
+        A3["<i>α</i>₃=0.20<br/><i>E<sub>r</sub></i>→<i>I<sub>r</sub></i>"]
+        Branching["Detection<br/>32%"]
     end
     
-    subgraph Rec[" 🏥 Recovery & Control "]
-        Nu["<b>ν</b> = 0.067/day<br/>I_h → R_h recovery<br/>~15 days untreated"]
-        Tau["<b>τ</b> = 0.143/day<br/>Q_h → R_h recovery<br/>~7 days (2× faster)"]
-        Phi["<b>φ</b> = 0.20/day<br/>Q_h → S_h release<br/>False positive pathway"]
-        IsolationBenefit["Isolation effect:<br/>τ > ν (faster recovery)<br/>Reduces transmission"]
+    subgraph Rec["🏥 Recovery & Control"]
+        Nu["<i>ν</i>=0.067<br/><i>I<sub>h</sub></i>→<i>R<sub>h</sub></i>"]
+        Tau["<i>τ</i>=0.143<br/><i>Q<sub>h</sub></i>→<i>R<sub>h</sub></i>"]
+        Phi["<i>φ</i>=0.20<br/><i>Q<sub>h</sub></i>→<i>S<sub>h</sub></i>"]
+        IsolationBenefit["<i>τ</i>><i>ν</i><br/>Faster"]
     end
     
-    subgraph Death[" ⚠️ Mortality & Turnover "]
-        DH["<b>δ_h</b> disease CFR"]
-        DR["<b>δ_r</b> rodent disease death"]
-        MuH["<b>μ_h</b> natural death"]
-        MuR["<b>μ_r</b> natural death"]
-        ThetaH["<b>θ_h</b> birth/immigration<br/>Maintains N_h"]
-        ThetaR["<b>θ_r</b> rodent birth<br/>Maintains N_r"]
+    subgraph Death["⚠️ Mortality & Turnover"]
+        DH["<i>δ<sub>h</sub></i> CFR"]
+        DR["<i>δ<sub>r</sub></i> death"]
+        MuH["<i>μ<sub>h</sub></i> natural"]
+        MuR["<i>μ<sub>r</sub></i> natural"]
+        ThetaH["<i>θ<sub>h</sub></i> birth"]
+        ThetaR["<i>θ<sub>r</sub></i> birth"]
     end
     
     %% Relationships between parameter groups
@@ -341,8 +373,8 @@ graph TB
     B2 --> LambdaH
     B3 --> LambdaR
     
-    LambdaH -.->|"Drives E_h"| Prog
-    LambdaR -.->|"Drives E_r"| Prog
+    LambdaH -.->|"Drives <i>E<sub>h</sub></i>"| Prog
+    LambdaR -.->|"Drives <i>E<sub>r</sub></i>"| Prog
     
     A1 -.-> Nu
     A2 -.-> Tau
@@ -439,15 +471,21 @@ graph TB
                         
                         const wrapper = svg.parentElement;
                         
+                        // Store original padding
+                        const originalPadding = 30;
+                        container.style.padding = originalPadding + 'px';
+                        
                         // Calculate fit-to-screen scale
                         let initialScale = 1;
                         setTimeout(() => {
                             const isMobile = window.innerWidth <= 768;
-                            const padding = isMobile ? 30 : 60;
-                            const containerWidth = container.clientWidth - padding;
-                            const containerHeight = container.clientHeight - padding;
-                            const svgWidth = svg.scrollWidth || svg.clientWidth;
-                            const svgHeight = svg.scrollHeight || svg.clientHeight;
+                            const containerWidth = container.clientWidth - (originalPadding * 2);
+                            const containerHeight = container.clientHeight - (originalPadding * 2);
+                            
+                            // Get actual SVG dimensions
+                            const svgRect = svg.getBoundingClientRect();
+                            const svgWidth = svg.scrollWidth || svgRect.width || svg.clientWidth;
+                            const svgHeight = svg.scrollHeight || svgRect.height || svg.clientHeight;
                             
                             if (svgWidth > 0 && svgHeight > 0) {
                                 const scaleX = containerWidth / svgWidth;
@@ -468,9 +506,9 @@ graph TB
                                     const maxScrollTop = container.scrollHeight - container.clientHeight;
                                     container.scrollLeft = Math.max(0, maxScrollLeft / 2);
                                     container.scrollTop = Math.max(0, maxScrollTop / 2);
-                                }, 50);
+                                }, 100);
                             }
-                        }, 100);
+                        }, 200);
                         
                         // Create zoom controls
                         const controls = document.createElement('div');
@@ -483,8 +521,7 @@ graph TB
                         container.style.position = 'relative';
                         container.insertBefore(controls, container.firstChild);
                         
-                        // Zoom functions with smoothing
-                        let zoomTimeout;
+                        // Zoom functions with smoothing and overflow handling
                         function updateZoom(newScale, smooth = false) {
                             scale = Math.max(0.5, Math.min(3, newScale));
                             
@@ -496,17 +533,9 @@ graph TB
                                     wrapper.style.transition = 'none';
                                 }
                                 
+                                // Apply scale transform - the wrapper padding will create space
                                 wrapper.style.transform = `scale(${scale})`;
-                                
-                                // Debounce size updates for better performance
-                                clearTimeout(zoomTimeout);
-                                zoomTimeout = setTimeout(() => {
-                                    const baseWidth = svg.scrollWidth || svg.clientWidth;
-                                    const baseHeight = svg.scrollHeight || svg.clientHeight;
-                                    wrapper.style.width = (baseWidth * scale) + 'px';
-                                    wrapper.style.height = (baseHeight * scale) + 'px';
-                                    wrapper.style.margin = '0 auto';
-                                }, 50);
+                                wrapper.style.transformOrigin = 'center center';
                             } else {
                                 svg.style.transform = `scale(${scale})`;
                             }
@@ -579,14 +608,20 @@ graph TB
                         container.scrollTop = scrollTop - walkY;
                     });
                     
-                    // Touch support for mobile pinch zoom
+                    // Touch support for mobile pinch zoom and pan
                     let touchStartDistance = 0;
                     let touchStartScale = 1;
                     let touchStartX = 0;
                     let touchStartY = 0;
+                    let isTouchPanning = false;
+                    let touchPanStartX = 0;
+                    let touchPanStartY = 0;
+                    let touchScrollLeft = 0;
+                    let touchScrollTop = 0;
                     
                     container.addEventListener('touchstart', (e) => {
                         if (e.touches.length === 2) {
+                            // Two finger pinch zoom
                             e.preventDefault();
                             e.stopPropagation();
                             
@@ -599,11 +634,22 @@ graph TB
                             // Calculate touch center for zoom origin
                             touchStartX = (e.touches[0].pageX + e.touches[1].pageX) / 2;
                             touchStartY = (e.touches[0].pageY + e.touches[1].pageY) / 2;
+                            isTouchPanning = false;
+                        } else if (e.touches.length === 1) {
+                            // Single finger pan (only when zoomed)
+                            if (scale > initialScale * 1.1) {
+                                isTouchPanning = true;
+                                touchPanStartX = e.touches[0].pageX;
+                                touchPanStartY = e.touches[0].pageY;
+                                touchScrollLeft = container.scrollLeft;
+                                touchScrollTop = container.scrollTop;
+                            }
                         }
                     }, { passive: false });
                     
                     container.addEventListener('touchmove', (e) => {
                         if (e.touches.length === 2) {
+                            // Two finger pinch zoom
                             e.preventDefault();
                             e.stopPropagation();
                             
@@ -614,12 +660,24 @@ graph TB
                             
                             const newScale = touchStartScale * (touchDistance / touchStartDistance);
                             updateZoom(newScale);
+                        } else if (e.touches.length === 1 && isTouchPanning) {
+                            // Single finger pan
+                            e.preventDefault();
+                            
+                            const deltaX = touchPanStartX - e.touches[0].pageX;
+                            const deltaY = touchPanStartY - e.touches[0].pageY;
+                            
+                            container.scrollLeft = touchScrollLeft + deltaX;
+                            container.scrollTop = touchScrollTop + deltaY;
                         }
                     }, { passive: false });
                     
                     container.addEventListener('touchend', (e) => {
                         if (e.touches.length < 2) {
                             touchStartDistance = 0;
+                        }
+                        if (e.touches.length === 0) {
+                            isTouchPanning = false;
                         }
                     }, { passive: false });
                     }, index * 100); // Stagger initialization for complex diagrams

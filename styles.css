@@ -12,7 +12,7 @@ body {
 }
 
 .container {
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
     background: white;
     border-radius: 20px;
@@ -72,6 +72,8 @@ select:hover, button:hover {
 .chart-container {
     position: relative;
     height: 500px;
+    width: 100%;
+    max-width: 100%;
     margin-bottom: 40px;
     background: #f8f9fa;
     padding: 20px;
@@ -145,11 +147,13 @@ select:hover, button:hover {
     margin: 20px 0;
     overflow: auto;
     display: block;
+    text-align: center;
     position: relative;
     touch-action: none;
     cursor: grab;
     min-height: 400px;
     -webkit-overflow-scrolling: touch;
+    box-sizing: border-box;
 }
 
 .mermaid:active {
@@ -166,16 +170,16 @@ select:hover, button:hover {
 .mermaid svg {
     max-width: none;
     height: auto;
-    display: inline-block;
-    vertical-align: middle;
+    display: block;
+    margin: 0 auto;
 }
 
 .mermaid .svg-wrapper {
     display: inline-block;
     transform-origin: center center;
-    padding: 50px;
-    min-width: 100%;
     will-change: transform;
+    position: relative;
+    padding: 50px;
 }
 
 .diagram-zoom-controls {
@@ -214,18 +218,26 @@ select:hover, button:hover {
     transform: none;
 }
 
-.mermaid .edgeLabel {
+.mermaid .edgeLabel:not(:empty) {
     background-color: #ffffff !important;
-    padding: 6px 10px !important;
-    border-radius: 6px !important;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
+    padding: 8px 14px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15) !important;
     font-weight: 600 !important;
-    border: 1px solid #e0e0e0 !important;
+    border: 2px solid #e0e0e0 !important;
+    z-index: 10 !important;
+}
+
+.mermaid .edgeLabel:empty {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
 }
 
 .mermaid .edgeLabel span {
     background-color: #ffffff !important;
-    padding: 2px 4px !important;
+    padding: 4px 6px !important;
 }
 
 .mermaid .edgePath .path {
