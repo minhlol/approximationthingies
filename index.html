@@ -153,6 +153,8 @@
 
     <script>
         let allData = [];
+        let historicalData = [];
+        let forecastData = [];
         let myChart = null;
         
         // Load and parse CSV data
@@ -222,6 +224,10 @@
                     allData = allData.concat(forecastData);
                     console.log('Forecast loaded, total records:', allData.length);
                 }
+                
+                // Populate global historical and forecast data
+                historicalData = allData.filter(d => !d.isForecast);
+                forecastData = allData.filter(d => d.isForecast);
                 
                 console.log('Data parsed successfully, records:', allData.length);
                 initializeChart();
@@ -330,9 +336,7 @@
             const view = document.getElementById('viewSelect').value;
             
             if (view === 'comparison') {
-                // Separate historical and forecast data
-                const historicalData = allData.filter(d => !d.isForecast);
-                const forecastData = allData.filter(d => d.isForecast);
+                // Use global historical and forecast data (already filtered)
                 const lastHistorical = historicalData[historicalData.length - 1];
                 
                 myChart.data.datasets = [
@@ -376,9 +380,24 @@
                         tension: 0.4
                     },
                     {
-                        label: '90-Day Forecast',
-                        data: [...historicalData.map(d => d.forecast_90d || null), 
-                               ...forecastData.map(d => d.Total_Infected_h)],
+                        label: '21-Day Forecast',
+                        data: (() => {
+                            // Shift forecast values 21 days into the future
+                            const forecastArray = new Array(allData.length).fill(null);
+                            historicalData.forEach((d, i) => {
+                                if (d.forecast_90d && i + 21 < allData.length) {
+                                    forecastArray[i + 21] = d.forecast_90d;
+                                }
+                            });
+                            // Add future forecast data
+                            forecastData.forEach((d, i) => {
+                                const idx = historicalData.length + i;
+                                if (idx < forecastArray.length) {
+                                    forecastArray[idx] = d.Total_Infected_h;
+                                }
+                            });
+                            return forecastArray;
+                        })(),
                         borderColor: '#6f42c1',
                         backgroundColor: 'rgba(111, 66, 193, 0.1)',
                         borderDash: [10, 5],
@@ -475,8 +494,13 @@
             const year = document.getElementById('yearSelect').value;
             
             let filteredData = allData;
+            let filteredHistorical = historicalData;
+            let filteredForecast = forecastData;
+            
             if (year !== 'all') {
                 filteredData = allData.filter(d => d.date.includes(year));
+                filteredHistorical = historicalData.filter(d => d.date.includes(year));
+                filteredForecast = forecastData.filter(d => d.date.includes(year));
             }
             
             myChart.data.labels = filteredData.map(d => d.date);
@@ -484,9 +508,37 @@
             const view = document.getElementById('viewSelect').value;
             if (view === 'comparison') {
                 myChart.data.datasets[0].data = filteredData.map(d => d.observed);
-                myChart.data.datasets[1].data = filteredData.map(d => d.ma7);
-                myChart.data.datasets[2].data = filteredData.map(d => d.ma21);
-                myChart.data.datasets[3].data = filteredData.map(d => d.Total_Infected_h);
+                myChart.data.datasets[1].data = filteredHistorical.map(d => d.ma7);
+                myChart.data.datasets[2].data = filteredHistorical.map(d => d.ma21);
+                myChart.data.datasets[3].data = filteredHistorical.map(d => d.Total_Infected_h);
+                
+                // Shift forecast values 21 days into the future using date matching
+                const forecastArray = new Array(filteredData.length).fill(null);
+                
+                // For each historical point with forecast, find the target date 21 days ahead
+                historicalData.forEach(histPoint => {
+                    if (histPoint.forecast_90d) {
+                        // Find this point's index in all data
+                        const sourceIdx = allData.findIndex(d => d.date === histPoint.date);
+                        if (sourceIdx >= 0 && sourceIdx + 21 < allData.length) {
+                            const targetDate = allData[sourceIdx + 21].date;
+                            // Find this target date in filtered data
+                            const targetIdx = filteredData.findIndex(d => d.date === targetDate);
+                            if (targetIdx >= 0) {
+                                forecastArray[targetIdx] = histPoint.forecast_90d;
+                            }
+                        }
+                    }
+                });
+                
+                // Add future forecast data
+                filteredForecast.forEach((d, i) => {
+                    const idx = filteredHistorical.length + i;
+                    if (idx < forecastArray.length) {
+                        forecastArray[idx] = d.Total_Infected_h;
+                    }
+                });
+                myChart.data.datasets[4].data = forecastArray;
             } else if (view === 'human') {
                 myChart.data.datasets[0].data = filteredData.map(d => d.S_h);
                 myChart.data.datasets[1].data = filteredData.map(d => d.E_h);
@@ -544,15 +596,15 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Peak Predicted</div>
-                    <div class="stat-value">${maxPredicted.toExponential(2)}</div>
+                    <div class="stat-value">${Math.round(maxPredicted).toLocaleString()}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Final Susceptible (S_h)</div>
-                    <div class="stat-value">${finalSusceptible.toExponential(2)}</div>
+                    <div class="stat-value">${Math.round(finalSusceptible).toLocaleString()}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Final Recovered (R_h)</div>
-                    <div class="stat-value">${finalRecovered.toExponential(2)}</div>
+                    <div class="stat-value">${Math.round(finalRecovered).toLocaleString()}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Data Points</div>
