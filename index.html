@@ -728,7 +728,7 @@ graph TB
                         observed: parseFloat(values[10]) || 0,
                         ma7: parseFloat(values[11]) || 0,
                         ma21: parseFloat(values[12]) || 0,
-                        forecast_90d: parseFloat(values[13]) || 0
+                        forecast_21d: parseFloat(values[13]) || 0
                     };
                 });
                 
@@ -940,8 +940,8 @@ graph TB
                             // Shift forecast values 21 days into the future
                             const forecastArray = new Array(allData.length).fill(null);
                             historicalData.forEach((d, i) => {
-                                if (d.forecast_90d && i + 21 < allData.length) {
-                                    forecastArray[i + 21] = d.forecast_90d;
+                                if (d.forecast_21d && d.forecast_21d > 0 && i + 21 < allData.length) {
+                                    forecastArray[i + 21] = d.forecast_21d;
                                 }
                             });
                             // Add future forecast data
@@ -1072,7 +1072,7 @@ graph TB
                 
                 // For each historical point with forecast, find the target date 21 days ahead
                 historicalData.forEach(histPoint => {
-                    if (histPoint.forecast_90d) {
+                    if (histPoint.forecast_21d && histPoint.forecast_21d > 0) {
                         // Find this point's index in all data
                         const sourceIdx = allData.findIndex(d => d.date === histPoint.date);
                         if (sourceIdx >= 0 && sourceIdx + 21 < allData.length) {
@@ -1080,7 +1080,7 @@ graph TB
                             // Find this target date in filtered data
                             const targetIdx = filteredData.findIndex(d => d.date === targetDate);
                             if (targetIdx >= 0) {
-                                forecastArray[targetIdx] = histPoint.forecast_90d;
+                                forecastArray[targetIdx] = histPoint.forecast_21d;
                             }
                         }
                     }
@@ -1183,5 +1183,35 @@ graph TB
             });
         });
     </script>
+
+    <div class="references-section">
+        <h2>📚 References</h2>
+        <ol class="references-list">
+            <li>
+                Md. Rasel, M. S. H. Hawlader, et al., "A Mathematical Model for Monkeypox Transmission," 
+                <em>Symmetry</em> 14(12):2545, 2022. 
+                <a href="https://www.mdpi.com/2073-8994/14/12/2545#symmetry-14-02545-t001" target="_blank" rel="noopener noreferrer">
+                    https://www.mdpi.com/2073-8994/14/12/2545
+                </a>
+            </li>
+            <li>
+                Victoria Department of Health, "Mpox (monkeypox)," 2023 guidance. 
+                <a href="https://www.health.vic.gov.au/infectious-diseases/mpox-monkeypox" target="_blank" rel="noopener noreferrer">
+                    https://www.health.vic.gov.au/infectious-diseases/mpox-monkeypox
+                </a>
+            </li>
+            <li>
+                Centers for Disease Control and Prevention, "Mpox (monkeypox) Data and Statistics." 
+                <a href="https://www.cdc.gov/monkeypox/data-research/cases/index.html" target="_blank" rel="noopener noreferrer">
+                    https://www.cdc.gov/monkeypox/data-research/cases/index.html
+                </a>
+            </li>
+        </ol>
+    </div>
+
+    <footer class="footer">
+        <p>© 2025 Monkeypox SEIQR-SEIR Model | Two-Population Epidemiological Model</p>
+        <p>Source code: <a href="https://github.com/minhlol/approximationthingies" target="_blank" rel="noopener noreferrer">github.com/minhlol/approximationthingies</a></p>
+    </footer>
 </body>
 </html>

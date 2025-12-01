@@ -53,9 +53,12 @@ Model structure and baseline parameter magnitudes follow the extended SEIR frame
 All commands assume Windows PowerShell in the workspace root:
 
 ```powershell
-cd d:\approximationthingies
-if ($?) { g++ monkeypox_seir.cpp -std=c++20 -O2 -o monkeypox_seir }
-if ($?) { .\monkeypox_seir }
+# Navigate to project directory
+cd c:\Users\Admin\Documents\GitHub\approximationthingies
+# Compile the C++ model
+g++ monkeypox_seir.cpp -std=c++20 -O2 -o monkeypox_seir
+# Run the simulation
+.\monkeypox_seir
 ```
 
 Execution steps:
@@ -72,9 +75,9 @@ Execution steps:
 To deploy the visualization on GitHub Pages:
 
 1. **Commit the required files** to your repository:
-   ```bash
-   git add index.html monkeypox_fitted_prediction.csv observed_data.csv
-   git commit -m "Add SEIR visualization"
+   ```powershell
+   git add index.html styles.css monkeypox_fitted_prediction.csv monkeypox_prediction.csv observed_data.csv
+   git commit -m "Add SEIQR-SEIR visualization with 21-day forecasts"
    git push origin main
    ```
 
@@ -85,8 +88,8 @@ To deploy the visualization on GitHub Pages:
    - Click **Save**
 
 3. **Access your visualization**:
-   - Your site will be available at: `https://[username].github.io/[repository-name]/`
-   - Example: `https://yourusername.github.io/approximationthingies/`
+   - Your site will be available at: `https://minhlol.github.io/approximationthingies/`
+   - GitHub Pages deployment typically takes 1-2 minutes
 
 4. **Note**: Make sure all CSV files are committed to the repository. GitHub Pages serves static files only, so the visualization loads data via fetch() from the same directory.
 

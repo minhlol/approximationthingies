@@ -5,18 +5,21 @@
 Make sure these files are committed and pushed:
 
 - ✅ `index.html` - Interactive visualization webpage with Chart.js
+- ✅ `styles.css` - Styling for the visualization
+- ✅ `monkeypox_seir.cpp` - C++ source code for SEIQR-SEIR model (optional for Pages, but good for reference)
 - ✅ `monkeypox_fitted_prediction.csv` - Main data file with 14 columns (~1289 lines, includes 21-day forecasts)
 - ✅ `monkeypox_prediction.csv` - 21-day future forecast (91 lines)
 - ✅ `observed_data.csv` - Original observed case data (1288 points)
 - ✅ `README.md` - Complete documentation
+- ✅ `ARCHITECTURE.md` - Model architecture and flow diagrams
 - ✅ `DEPLOYMENT.md` - This deployment guide
 
 ## Deployment Steps
 
 1. **Check that all required files are committed:**
-   ```bash
+   ```powershell
    git status
-   git add index.html monkeypox_fitted_prediction.csv monkeypox_prediction.csv observed_data.csv README.md DEPLOYMENT.md
+   git add index.html styles.css monkeypox_fitted_prediction.csv monkeypox_prediction.csv observed_data.csv README.md DEPLOYMENT.md ARCHITECTURE.md
    git commit -m "Update SEIQR-SEIR model with 21-day rolling forecasts"
    git push origin main
    ```
@@ -30,9 +33,10 @@ Make sure these files are committed and pushed:
 
 3. **Wait 1-2 minutes** for deployment to complete
 
-4. **Access your site:**
-   - URL will be: `https://[username].github.io/[repository-name]/`
+3. **Access your site:**
+   - URL: `https://minhlol.github.io/approximationthingies/`
    - Check "Actions" tab to see deployment status
+   - Deployment typically completes in 1-2 minutes
 
 ## Troubleshooting
 
