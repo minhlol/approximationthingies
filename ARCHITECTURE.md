@@ -8,13 +8,17 @@ graph TB
     LoadData --> CalcMA[Calculate Moving Averages<br/>MA7 and MA21]
     CalcMA --> DetectOutbreaks[Detect Outbreak Periods<br/>MA21 > 5 cases threshold]
     
-    DetectOutbreaks --> Stage1[Stage 1: Exponential Smoothing<br/>α=0.25 on MA21]
+    DetectOutbreaks --> InitState[Initialize State<br/>S_h, E_h, I_h, Q_h, R_h<br/>S_r, E_r, I_r]
     
-    Stage1 --> Stage2[Stage 2: Build Human Compartments<br/>S_h, E_h, I_h, Q_h, R_h from prediction]
+    InitState --> Integrate[RK4 Integration Loop<br/>1288 days with continuous correction]
     
-    Stage2 --> Stage3[Stage 3: Rodent SEIR Refinement<br/>Integrate S_r, E_r, I_r with homeostasis]
+    Integrate --> DynamicBeta[Apply Dynamic β Parameters<br/>Per outbreak period]
     
-    Stage3 --> Analyze[Analyze Outbreaks<br/>Calculate RMSE per period]
+    DynamicBeta --> Correction[Continuous Correction<br/>25% rate targeting 4× observed]
+    
+    Correction --> Smoothing[Cubic Spline Smoothing<br/>Dual-pass: window-5 + window-3]
+    
+    Smoothing --> Analyze[Analyze Outbreaks<br/>Calculate RMSE per period]
     
     Analyze --> GenForecast[Generate Rolling 21-Day Forecasts<br/>For each historical point]
     
@@ -30,31 +34,44 @@ graph TB
     style GenForecast fill:#e1ffe1
 ```
 
-## Three-Stage Model Detail
+## Continuous Correction Integration Loop
 
 ```mermaid
-graph LR
-    subgraph Stage1[Stage 1: Smoothing]
-        Raw[Raw Observed Data] --> MA21[21-Day Moving Average]
-        MA21 --> ExpSmooth[Exponential Smoothing<br/>Predicted = 0.25 * MA21 + 0.75 * Predicted_prev]
+graph TB
+    subgraph Init[Initialization]
+        SetupH[Initialize Human<br/>S=999984, E=10, I=5, Q=1, R=0]
+        SetupR[Initialize Rodent<br/>S=96000, E=2000, I=2000]
     end
     
-    subgraph Stage2[Stage 2: Human Compartments]
-        ExpSmooth --> BuildI[Build I_h and Q_h<br/>from prediction]
-        BuildI --> BuildE[Build E_h<br/>from I_h flow rates]
-        BuildE --> BuildR[Build R_h<br/>from recovery rates]
-        BuildR --> BuildS[Build S_h<br/>N_h - E - I - Q - R]
+    subgraph DailyLoop[Daily Integration Loop - 1288 days]
+        CheckOutbreak{In Outbreak<br/>Period?}
+        CheckOutbreak -->|Yes| CalcBeta[Calculate Dynamic β<br/>from outbreak growth rate]
+        CheckOutbreak -->|No| BaselineBeta[Use Baseline β<br/>β₁=0.0002, β₂=0.00035]
+        
+        CalcBeta --> CheckCorrection{Observed > 0.5?}
+        BaselineBeta --> CheckCorrection
+        
+        CheckCorrection -->|Yes| ApplyCorrection[Apply Continuous Correction<br/>25% rate, target = 4× observed<br/>Adjust E_h, I_h, Q_h, S_h]
+        CheckCorrection -->|No| SkipCorrection[No Correction]
+        
+        ApplyCorrection --> RK4[RK4 Integration<br/>10 steps per day<br/>Full SEIQR-SEI equations]
+        SkipCorrection --> RK4
+        
+        RK4 --> Homeostasis[Maintain Rodent<br/>Population Homeostasis<br/>1% daily replenishment]
+        
+        Homeostasis --> StoreState[Store Daily State<br/>All 8 compartments]
+    end
+## SEIQR-SEI Compartmental Structure
+    subgraph PostProcess[Post-Processing]
+        StoreState --> Smooth[Cubic Spline Smoothing<br/>Window-5 then Window-3<br/>Applied to fitted model only]
     end
     
-    subgraph Stage3[Stage 3: Rodent Dynamics]
-        BuildS --> InitRodent[Initialize Rodent<br/>S_r, E_r, I_r]
-        InitRodent --> IntegrateRK4[RK4 Integration<br/>with homeostasis]
-        IntegrateRK4 --> Replenish[Endemic Maintenance<br/>Replenish if I_r < 50%]
-    end
+    Init --> DailyLoop
+    DailyLoop --> PostProcess
     
-    style Stage1 fill:#e1f5ff
-    style Stage2 fill:#fff4e1
-    style Stage3 fill:#ffe1f5
+    style Init fill:#e1f5ff
+    style DailyLoop fill:#fff4e1
+    style PostProcess fill:#ffe1f5
 ```
 
 ## SEIQR-SEIR Compartmental Structure
@@ -70,11 +87,11 @@ graph TB
         Qh -->|φ rate| Sh
     end
     
-    subgraph Rodent[Rodent Reservoir - SEIR Model]
+    subgraph Rodent[Rodent Reservoir - SEI Model]
         Sr[S_r<br/>Susceptible] -->|λ_r infection| Er[E_r<br/>Exposed]
         Er -->|α₃ rate| Ir[I_r<br/>Infectious]
-        Sr -.->|Immigration<br/>Homeostasis| Sr
-        Ir -.->|Endemic<br/>Replenishment| Ir
+        Sr -.->|θ_r recruitment<br/>Homeostasis| Sr
+        Ir -.->|δ_r, μ_r deaths| Ir
     end
     
     Ir -.->|β₁ spillover| Sh
@@ -84,34 +101,29 @@ graph TB
     style Rodent fill:#ffe1f5
 ```
 
-## 21-Day Forecast Generation
+## 21-Day Trend-Based Forecast Generation
 
 ```mermaid
 graph TB
-    Start([For Each Historical Day]) --> CheckTrend{Calculate 7-Day Trend<br/>Growth or Decline?}
+    Start([For Each Day<br/>day = 0 to 1267]) --> CalcAvg[Calculate Average Trajectory<br/>Sum fitted values over 21-day window<br/>avg = Σ(fitted[day+i])/21]
     
-    CheckTrend -->|Trend > -2<br/>Growth/Stable| UseModel[Use Model Trajectory<br/>90% confidence]
-    CheckTrend -->|Trend < -2<br/>Rapid Decline| UseSEIQR[Use SEIQR-SEIR Dynamics]
+    CalcAvg --> CheckFuture{Future index<br/>day+21 within range?}
     
-    UseModel --> GetFuture[Get model prediction<br/>21 days ahead]
-    GetFuture --> Blend[Blend: 90% future + 10% current]
+    CheckFuture -->|Yes| GetFuture[Get fitted value 21 days ahead<br/>future_val = fitted[day+21]]
+    CheckFuture -->|No| UseAvg[Use average trajectory<br/>forecast = avg]
     
-    UseSEIQR --> CheckRodent{I_r > 0.01?}
-    CheckRodent -->|Yes| FullModel[Full Two-Population Model<br/>with zoonotic spillover]
-    CheckRodent -->|No| SimplifiedModel[Simplified Human-Only Model<br/>no spillover term]
+    GetFuture --> Blend[Weighted Average<br/>forecast = 0.7 × future_val<br/>+ 0.3 × avg]
     
-    FullModel --> Integrate[RK4 Integration<br/>21 days with homeostasis]
-    SimplifiedModel --> Integrate
-    
-    Integrate --> Store[Store forecast value<br/>at day+21 position]
-    Blend --> Store
+    Blend --> Store[Store forecast at current day<br/>forecast_21d[day] = forecast]
+    UseAvg --> Store
     
     Store --> Next{More days?}
     Next -->|Yes| Start
-    Next -->|No| Done([Complete])
+    Next -->|No| Done([Complete - All forecasts generated])
     
-    style UseModel fill:#e1ffe1
-    style UseSEIQR fill:#ffe1e1
+    style CalcAvg fill:#e1f5ff
+    style Blend fill:#e1ffe1
+    style Store fill:#fff4e1
 ```
 
 ## Data Flow Through System
@@ -139,27 +151,27 @@ flowchart LR
 ```mermaid
 graph TB
     subgraph Transmission["Transmission Parameters"]
-        B1[β₁ = 0.00008<br/>Rodent → Human spillover]
-        B2[β₂ = 0.00012<br/>Human → Human transmission]
-        B3[β₃ = 0.0003<br/>Rodent → Rodent transmission]
+        B1[β₁ = 0.0002 baseline<br/>Rodent → Human spillover<br/>Dynamic: 0.0002-0.00055]
+        B2[β₂ = 0.00035 baseline<br/>Human → Human transmission<br/>Dynamic: 0.36-5.50]
+        B3[β₃ = 0.08<br/>Rodent → Rodent transmission<br/>Maintains endemic equilibrium]
     end
     
     subgraph Progression["Disease Progression"]
-        A1[α₁ = 0.143<br/>E → I rate<br/>~7 days incubation]
-        A2[α₂ = 0.067<br/>E → Q rate<br/>detection pathway]
-        A3[α₃ = 0.20<br/>E_r → I_r rate<br/>~5 days rodent]
+        A1[α₁ = 0.2<br/>E → I rate<br/>~5 days incubation]
+        A2[α₂ = 2.0<br/>E → Q rate<br/>detection pathway]
+        A3[α₃ = 2.0<br/>E_r → I_r rate<br/>~5 days rodent]
     end
     
     subgraph Recovery["Recovery/Isolation"]
-        Nu[ν = 0.067<br/>I → R recovery<br/>~15 days]
-        Tau[τ = 0.143<br/>Q → R isolation<br/>~7 days]
-        Phi[φ = 0.20<br/>Q → S release rate]
+        Nu[ν = 0.83<br/>I → R recovery<br/>~14 days]
+        Tau[τ = 0.52<br/>Q → R isolation<br/>~15 days]
+        Phi[φ = 2.0<br/>Q → S release rate<br/>~120 days rare event]
     end
     
     subgraph Population["Population Dynamics"]
         Nh[N_h = 1,000,000<br/>Human population]
         Nr[N_r = 100,000<br/>Rodent population]
-        Target[Target I_r = 1.5%<br/>Endemic level = 1,500]
+        Endemic[Endemic equilibrium:<br/>E_r ≈ 3, I_r ≈ 8]
     end
     
     style Transmission fill:#ffe1e1
@@ -186,18 +198,21 @@ sequenceDiagram
     CPP->>CPP: Calculate MA7, MA21
     CPP->>CPP: Detect 7 outbreaks
     
-    CPP->>Stage1: Apply exponential smoothing
-    Stage1-->>CPP: Smoothed trajectory
+    CPP->>CPP: Initialize state (all compartments)
     
-    CPP->>Stage2: Build human compartments
-    Stage2-->>CPP: S_h, E_h, I_h, Q_h, R_h
+    loop Daily Integration (1288 days)
+        CPP->>CPP: Check outbreak period
+        CPP->>CPP: Calculate dynamic β parameters
+        CPP->>CPP: Apply continuous correction (25% rate)
+        CPP->>CPP: RK4 integration (10 steps/day)
+        CPP->>CPP: Rodent homeostasis (1% replenishment)
+    end
     
-    CPP->>Stage3: Integrate rodent dynamics
-    Stage3-->>CPP: S_r, E_r, I_r with homeostasis
+    CPP->>CPP: Cubic spline smoothing (dual-pass)
     
-    CPP->>Forecast: Generate 21-day rolling forecasts
-    Forecast->>Forecast: Check trend (growth/decline)
-    Forecast->>Forecast: Apply conditional dynamics
+    CPP->>Forecast: Generate 21-day trend-based forecasts
+    Forecast->>Forecast: Calculate average trajectory over 21 days
+    Forecast->>Forecast: Blend 70% future value + 30% average
     Forecast-->>CPP: Forecast array (1198 points)
     
     CPP->>CSV: Write fitted_prediction.csv (14 cols)

@@ -7,7 +7,7 @@ Make sure these files are committed and pushed:
 - ✅ `index.html` - Interactive visualization webpage with Chart.js
 - ✅ `styles.css` - Styling for the visualization
 - ✅ `monkeypox_seir.cpp` - C++ source code for SEIQR-SEIR model (optional for Pages, but good for reference)
-- ✅ `monkeypox_fitted_prediction.csv` - Main data file with 14 columns (~1289 lines, includes 21-day forecasts)
+- ✅ `monkeypox_fitted_prediction.csv` - Main data file with 13 columns (~1289 lines, includes 21-day forecasts)
 - ✅ `monkeypox_prediction.csv` - 21-day future forecast (91 lines)
 - ✅ `observed_data.csv` - Original observed case data (1288 points)
 - ✅ `README.md` - Complete documentation
@@ -20,7 +20,7 @@ Make sure these files are committed and pushed:
    ```powershell
    git status
    git add index.html styles.css monkeypox_fitted_prediction.csv monkeypox_prediction.csv observed_data.csv README.md DEPLOYMENT.md ARCHITECTURE.md
-   git commit -m "Update SEIQR-SEIR model with 21-day rolling forecasts"
+   git commit -m "Update SEIQR-SEI model with continuous correction and trend-based forecasts"
    git push origin main
    ```
 
@@ -57,8 +57,8 @@ Make sure these files are committed and pushed:
 
 4. **Verify CSV format:**
    - Open `monkeypox_fitted_prediction.csv` in a text editor
-   - First line should be: `Date,S_h,E_h,I_h,Q_h,R_h,S_r,E_r,I_r,Total_Infected_h,Observed,MA7,MA21,Forecast_90d`
-   - Data lines should have 14 comma-separated values (including 21-day forecast column)
+   - First line should be: `Date,S_h,E_h,I_h,Q_h,R_h,S_r,E_r,I_r,Total_Infected_h,Observed,MA7,MA21,Forecast_21d`
+   - Data lines should have 13 comma-separated values (including 21-day forecast column)
    - Open `monkeypox_prediction.csv` and verify it has: `Date,S_h,E_h,I_h,Q_h,R_h,S_r,E_r,I_r,Total_Infected_h`
 
 5. **Check .gitignore:**

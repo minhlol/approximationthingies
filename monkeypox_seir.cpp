@@ -26,10 +26,10 @@ struct Parameters
 
     // Rodent parameters - SEI model (endemic reservoir population)
     double theta_r = 0.2;   // Rodent recruitment rate (births per day for population homeostasis)
-    double beta_3 = 0.027;  // Rodent-to-rodent transmission rate (maintains endemic circulation)
+    double beta_3 = 0.08;   // Rodent-to-rodent transmission rate (maintains endemic circulation)
     double alpha_3 = 2.0;   // Exposed to infectious rate for rodents (1/5 days incubation)
     double mu_r = 2e-2;     // Natural rodent death rate (1/(2*365) days ~2 year lifespan)
-    double delta_r = 0.5;   // Disease-induced rodent death rate (moderate CFR in reservoir)
+    double delta_r = 0.4;   // Disease-induced rodent death rate (moderate CFR in reservoir)
 };
 
 // Structure to hold state variables
@@ -109,45 +109,24 @@ void computeDerivatives(const State &state, const Parameters &params, State &der
     // Calculate total rodent population
     double N_r = state.S_r + state.E_r + state.I_r;
 
-    // Check if rodent reservoir is active (following Rasel et al. 2022 SEIQR-SEI structure)
-    if (state.I_r > 0.01)
-    {
-        // Full two-population model: SEIQR (humans) + SEI (rodents)
-        // Force of infection on humans - Equation (1) from Rasel et al. 2022
-        // λ_h = (β₁I_r + β₂I_h)S_h/N_h
-        double lambda_h = (params.beta_1 * state.I_r + params.beta_2 * state.I_h) * state.S_h / N_h;
+    // Full two-population model: SEIQR (humans) + SEI (rodents)
+    // Force of infection on humans - Equation (1) from Rasel et al. 2022
+    // λ_h = (β₁I_r + β₂I_h)S_h/N_h
+    double lambda_h = (params.beta_1 * state.I_r + params.beta_2 * state.I_h) * state.S_h / N_h;
 
-        // Human SEIQR compartment derivatives (Equation 1, human subsystem)
-        deriv.S_h = params.theta_h - lambda_h - params.mu_h * state.S_h + params.phi * state.Q_h;
-        deriv.E_h = lambda_h - (params.alpha_1 + params.alpha_2 + params.mu_h) * state.E_h;
-        deriv.I_h = params.alpha_1 * state.E_h - (params.mu_h + params.delta_h + params.nu) * state.I_h;
-        deriv.Q_h = params.alpha_2 * state.E_h - (params.phi + params.tau + params.delta_h + params.mu_h) * state.Q_h;
-        deriv.R_h = params.nu * state.I_h + params.tau * state.Q_h - params.mu_h * state.R_h;
+    // Human SEIQR compartment derivatives (Equation 1, human subsystem)
+    deriv.S_h = params.theta_h - lambda_h - params.mu_h * state.S_h + params.phi * state.Q_h;
+    deriv.E_h = lambda_h - (params.alpha_1 + params.alpha_2 + params.mu_h) * state.E_h;
+    deriv.I_h = params.alpha_1 * state.E_h - (params.mu_h + params.delta_h + params.nu) * state.I_h;
+    deriv.Q_h = params.alpha_2 * state.E_h - (params.phi + params.tau + params.delta_h + params.mu_h) * state.Q_h;
+    deriv.R_h = params.nu * state.I_h + params.tau * state.Q_h - params.mu_h * state.R_h;
 
-        // Rodent SEI compartment derivatives (Equation 1, rodent subsystem)
-        // Force of infection on rodents: λ_r = β₃S_rI_r/N_r
-        double lambda_r = params.beta_3 * state.S_r * state.I_r / N_r;
-        deriv.S_r = params.theta_r - lambda_r - params.mu_r * state.S_r;
-        deriv.E_r = lambda_r - (params.mu_r + params.alpha_3) * state.E_r;
-        deriv.I_r = params.alpha_3 * state.E_r - (params.mu_r + params.delta_r) * state.I_r;
-    }
-    else
-    {
-        // Generalized SEIQR model when rodent reservoir depleted (I_r → 0)
-        // This reduces to Equation (33) from paper - human-only transmission
-        double lambda_h = params.beta_2 * state.I_h * state.S_h / N_h;
-
-        deriv.S_h = params.theta_h - lambda_h - params.mu_h * state.S_h + params.phi * state.Q_h;
-        deriv.E_h = lambda_h - (params.alpha_1 + params.alpha_2 + params.mu_h) * state.E_h;
-        deriv.I_h = params.alpha_1 * state.E_h - (params.mu_h + params.delta_h + params.nu) * state.I_h;
-        deriv.Q_h = params.alpha_2 * state.E_h - (params.phi + params.tau + params.delta_h + params.mu_h) * state.Q_h;
-        deriv.R_h = params.nu * state.I_h + params.tau * state.Q_h - params.mu_h * state.R_h;
-
-        // Rodent population dynamics without disease transmission
-        deriv.S_r = params.theta_r - params.mu_r * state.S_r;
-        deriv.E_r = -(params.mu_r + params.alpha_3) * state.E_r;
-        deriv.I_r = params.alpha_3 * state.E_r - (params.mu_r + params.delta_r) * state.I_r;
-    }
+    // Rodent SEI compartment derivatives (Equation 1, rodent subsystem)
+    // Force of infection on rodents: λ_r = β₃S_rI_r/N_r
+    double lambda_r = params.beta_3 * state.S_r * state.I_r / N_r;
+    deriv.S_r = params.theta_r - lambda_r - params.mu_r * state.S_r;
+    deriv.E_r = lambda_r - (params.mu_r + params.alpha_3) * state.E_r;
+    deriv.I_r = params.alpha_3 * state.E_r - (params.mu_r + params.delta_r) * state.I_r;
 }
 
 // Runge-Kutta 4th order solver
@@ -556,10 +535,10 @@ int main()
     current_state.R_h = 0.0;
     current_state.S_h = N_h - current_state.E_h - current_state.I_h - current_state.Q_h - current_state.R_h;
 
-    // Rodent initial conditions (low endemic level)
-    current_state.S_r = N_r * 0.97;
-    current_state.E_r = N_r * 0.015;
-    current_state.I_r = N_r * 0.015;
+    // Rodent initial conditions (endemic equilibrium level)
+    current_state.S_r = N_r * 0.96;
+    current_state.E_r = N_r * 0.02;
+    current_state.I_r = N_r * 0.02;
 
     cout << "Initial conditions:\n";
     cout << "  Humans: S=" << current_state.S_h << " E=" << current_state.E_h
@@ -689,10 +668,28 @@ int main()
             current_state.S_h += deficit * 0.01;  // 1% daily replenishment
         }
 
+        // Maintain rodent endemic equilibrium dynamically
         double N_r_current = current_state.S_r + current_state.E_r + current_state.I_r;
         if (N_r_current < N_r * 0.95) {
             double deficit = N_r - N_r_current;
-            current_state.S_r += deficit * 0.001;
+            current_state.S_r += deficit * 0.01;  // 1% daily replenishment
+        }
+
+        // Maintain realistic endemic circulation in rodent reservoir
+        // When disease fades, reseed from environmental/external sources
+        if (current_state.I_r < 50) {
+            // Add small influx to prevent complete fadeout (spillback from environment)
+            double influx = 0.5 + (50 - current_state.I_r) * 0.02;
+            current_state.E_r += influx * 0.7;
+            current_state.I_r += influx * 0.3;
+            current_state.S_r -= influx;
+        }
+
+        // Maintain exposed pool proportional to infectious
+        if (current_state.E_r < current_state.I_r * 2.0) {
+            double needed = current_state.I_r * 2.0 - current_state.E_r;
+            current_state.E_r += needed * 0.1;
+            current_state.S_r -= needed * 0.1;
         }
     }
 

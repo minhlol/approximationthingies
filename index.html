@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monkeypox SEIR Model Visualization</title>
+    <title>Monkeypox SEIQR-SEI Model Visualization</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦠</text></svg>">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -14,8 +14,8 @@
 </head>
 <body>
     <div class="container">
-        <h1>🦠 Monkeypox SEIR Model Visualization</h1>
-        <div class="subtitle">Two-Population Epidemiological Model (Human-Rodent Interaction)</div>
+        <h1>🦠 Monkeypox SEIQR-SEI Model Visualization</h1>
+        <div class="subtitle">Two-Population Model with Continuous Correction & Endemic Rodent Reservoir</div>
         
         <div class="controls">
             <div class="control-group">
@@ -71,22 +71,22 @@
                 </div>
             </div>
             
-            <h4 style="color: #555; font-size: 1.2em; margin-top: 30px;">Rodent Compartments (SEIR)</h4>
+            <h4 style="color: #555; font-size: 1.2em; margin-top: 30px;">Rodent Compartments (SEI)</h4>
             <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin: 15px 0;">
                 <p style="margin-bottom: 10px;">Force of infection:</p>
                 <p style="font-size: 1.1em; margin: 10px 0;">$$\lambda_r = \frac{\beta_3 \cdot S_r \cdot I_r}{N_r}$$</p>
                 
                 <p style="margin: 20px 0 10px 0;">Differential equations:</p>
                 <div style="font-size: 1.1em; line-height: 2.2;">
-                    $$\frac{dS_r}{dt} = \theta_r - \lambda_r - \mu_r \cdot S_r + \text{immigration}$$
-                    $$\frac{dE_r}{dt} = \lambda_r - (\mu_r + \alpha_3) \cdot E_r + \text{replenishment}$$
-                    $$\frac{dI_r}{dt} = \alpha_3 \cdot E_r - (\mu_r + \delta_r) \cdot I_r + \text{replenishment}$$
+                    $$\frac{dS_r}{dt} = \theta_r - \lambda_r - \mu_r \cdot S_r$$
+                    $$\frac{dE_r}{dt} = \lambda_r - (\mu_r + \alpha_3) \cdot E_r$$
+                    $$\frac{dI_r}{dt} = \alpha_3 \cdot E_r - (\mu_r + \delta_r) \cdot I_r$$
                 </div>
                 
-                <p style="margin: 20px 0 10px 0; font-size: 0.95em;">Where:</p>
+                <p style="margin: 20px 0 10px 0; font-size: 0.95em;">With population homeostasis:</p>
                 <div style="font-size: 1em; line-height: 1.8; padding-left: 20px;">
-                    $$\text{immigration} = (N_r - N_{r,\text{current}}) \times 0.001$$
-                    $$\text{replenishment} = 0.05 \times (\text{target} - \text{current}) \text{ if } I_r < 50\% \text{ target}$$
+                    $$\text{If } N_{r,\text{current}} < 0.95 \times N_r\text{: } S_r \mathrel{+}= (N_r - N_{r,\text{current}}) \times 0.01$$
+                    $$\text{Endemic equilibrium: } E_r \approx 3, \; I_r \approx 8$$
                 </div>
             </div>
             
@@ -179,61 +179,61 @@ graph TB
     style End fill:#c8e6c9,stroke:#2e7d32,stroke-width:3px
             </div>
             
-            <h3>Three-Stage Model Detail</h3>
+            <h3>Continuous Correction Integration Loop</h3>
             <div class="diagram-description">
-                Sequential transformation from raw observations through human epidemiology to zoonotic reservoir dynamics.
+                RK4 integration with continuous correction targeting 4× observed values to account for underreporting. Dynamic β parameters adjusted per outbreak period.
             </div>
             <div class="mermaid">
 graph LR
-    S1Title["📈 Stage 1: Data Smoothing"]
-    S2Title["👥 Stage 2: Human SEIQR"]
-    S3Title["🐀 Stage 3: Rodent SEIR"]
+    InitTitle["🎲 Initialization"]
+    LoopTitle["🔄 Daily Integration Loop"]
+    PostTitle["✨ Post-Processing"]
     
-    subgraph S1[" "]
+    subgraph Init[" "]
         direction TB
-        Raw["📊 Raw Cases"]
-        Raw --> MA21["📉 MA21"]
-        MA21 --> Smooth["🎯 Smooth<br/><i>α</i>=0.25"]
+        InitH["👥 Human State<br/>S,E,I,Q,R"]
+        InitR["🐀 Rodent State<br/>S,E,I"]
     end
     
-    subgraph S2[" "]
+    subgraph Loop[" "]
         direction TB
-        SplitIQ["🔀 Split<br/><i>I<sub>h</sub></i>+<i>Q<sub>h</sub></i>"]
-        SplitIQ --> FlowE["⬅️ Backtrack<br/><i>E<sub>h</sub></i>"]
-        FlowE --> CalcR["➡️ Accumulate<br/><i>R<sub>h</sub></i>"]
-        CalcR --> CalcS["🔢 Derive<br/><i>S<sub>h</sub></i>"]
+        CheckOB["🔍 Check Outbreak?"]
+        CheckOB --> DynBeta["⚙️ Dynamic β<br/>or Baseline"]
+        DynBeta --> Correct["🎯 Correction<br/>25% rate → 4×obs"]
+        Correct --> RK4Int["⚙️ RK4<br/>10 steps/day"]
+        RK4Int --> HomeoR["♻️ Rodent<br/>Homeostasis"]
     end
     
-    subgraph S3[" "]
+    subgraph Post[" "]
         direction TB
-        Init["🎲 Initialize<br/>States"]
-        Init --> RK4["⚙️ RK4<br/>Integration"]
-        RK4 --> Maintain["♻️ Homeostasis<br/><i>I<sub>r</sub></i>=1.5%"]
+        Smooth1["📊 Spline<br/>window-5"]
+        Smooth1 --> Smooth2["📊 Spline<br/>window-3"]
     end
     
-    S1Title -.-> S1
-    S2Title -.-> S2
-    S3Title -.-> S3
+    InitTitle -.-> Init
+    LoopTitle -.-> Loop
+    PostTitle -.-> Post
     
-    S1 --> S2
-    S2 --> S3
+    Init --> Loop
+    Loop -.->|1288 days| Loop
+    Loop --> Post
     
-    style S1Title fill:#0077cc,stroke:#0077cc,color:#fff,stroke-width:2px
-    style S2Title fill:#ff9900,stroke:#ff9900,color:#fff,stroke-width:2px
-    style S3Title fill:#cc0077,stroke:#cc0077,color:#fff,stroke-width:2px
-    style S1 fill:#e1f5ff,stroke:#0077cc,stroke-width:2px
-    style S2 fill:#fff4e1,stroke:#ff9900,stroke-width:2px
-    style S3 fill:#ffe1f5,stroke:#cc0077,stroke-width:2px
+    style InitTitle fill:#0077cc,stroke:#0077cc,color:#fff,stroke-width:2px
+    style LoopTitle fill:#ff9900,stroke:#ff9900,color:#fff,stroke-width:2px
+    style PostTitle fill:#cc0077,stroke:#cc0077,color:#fff,stroke-width:2px
+    style Init fill:#e1f5ff,stroke:#0077cc,stroke-width:2px
+    style Loop fill:#fff4e1,stroke:#ff9900,stroke-width:2px
+    style Post fill:#ffe1f5,stroke:#cc0077,stroke-width:2px
             </div>
             
-            <h3>SEIQR-SEIR Compartmental Structure</h3>
+            <h3>SEIQR-SEI Compartmental Structure</h3>
             <div class="diagram-description">
-                Two-population epidemic model with human SEIQR compartments and rodent SEIR reservoir. Cross-species transmission pathways shown with dashed arrows.
+                Two-population epidemic model with human SEIQR compartments and rodent SEI reservoir. Cross-species zoonotic spillover (β₁) shown with dashed arrows. Endemic equilibrium: E_r≈3, I_r≈8.
             </div>
             <div class="mermaid">
 graph TB
     HumanTitle["👥 Human Population: SEIQR Model"]
-    RodentTitle["🐀 Rodent Reservoir: SEIR Model"]
+    RodentTitle["🐀 Rodent Reservoir: SEI Model"]
     
     subgraph Human[" "]
         direction LR
@@ -1042,7 +1042,8 @@ graph TB
                 ];
             }
             
-            myChart.update();
+            // Apply year filter after changing view
+            filterData();
         }
         
         function filterData() {
